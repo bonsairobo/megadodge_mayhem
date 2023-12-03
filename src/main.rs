@@ -3,6 +3,7 @@ mod ball;
 mod collision;
 mod cooldown;
 mod manager;
+mod parameters;
 mod player;
 mod squad;
 mod stats;
@@ -59,7 +60,7 @@ fn setup(
     let team_assets = TeamAssets::default();
     let ball_assets = BallAssets::new(&mut meshes, &mut materials);
 
-    let n_balls = 20;
+    let n_balls = 200;
     Ball::spawn_multiple_in_line(
         &mut commands,
         &ball_assets,
@@ -71,8 +72,21 @@ fn setup(
     let team0_aabb = Aabb2::new([-200.0, 275.0].into(), [200.0, 325.0].into());
     let team1_aabb = Aabb2::new([-200.0, -325.0].into(), [200.0, -275.0].into());
 
-    Team::spawn(&mut commands, &team_assets.teams[0], 0, team0_aabb, 5);
-    Team::spawn(&mut commands, &team_assets.teams[1], 1, team1_aabb, 5);
+    let team_size = 100;
+    Team::spawn(
+        &mut commands,
+        &team_assets.teams[0],
+        0,
+        team0_aabb,
+        team_size,
+    );
+    Team::spawn(
+        &mut commands,
+        &team_assets.teams[1],
+        1,
+        team1_aabb,
+        team_size,
+    );
 
     let stats = AllStats {
         squads: vec![default(), default()],

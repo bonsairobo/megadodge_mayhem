@@ -1,6 +1,10 @@
 use crate::{
     ball::{Ball, BallAssets},
     collision,
+    parameters::{
+        AVOID_FACTOR, AVOID_RADIUS, CHASE_BALL_FACTOR, CLAIM_RADIUS, PICKUP_RADIUS,
+        THROW_START_RADIUS,
+    },
     stats::AllStats,
     team::Team,
 };
@@ -84,11 +88,6 @@ impl Player {
             Without<Player>,
         >,
     ) {
-        // How much to avoid other players.
-        let avoid_factor = 0.8;
-        // How much to chase a ball.
-        let chase_ball_factor = 0.2;
-
         for (player_entity, player_team, mut player, player_global_tfm, mut player_velocity) in
             players.iter_mut()
         {
@@ -130,13 +129,10 @@ impl Player {
                     commands.entity(player_entity).despawn_descendants();
                     player.holding_ball = false;
 
-                    // Make sure the ball doesn't immediately collide with the thrower.
-                    let throw_start_radius = 25.0;
-
                     // Spawn a thrown ball.
                     let throw_dir = (projection.point - player_pos).normalize();
                     let throw_velocity = squad_stats.throw_speed * throw_dir;
-                    let throw_start = player_pos + throw_dir * throw_start_radius;
+                    let throw_start = player_pos + throw_dir * THROW_START_RADIUS;
                     Ball::spawn_thrown(&mut commands, &ball_assets, throw_start, throw_velocity);
                 } else {
                     // No players!
@@ -174,7 +170,6 @@ impl Player {
                             }
                         }
                     }
-                    println!("player chasing {nearest_ball_entity:?}");
                 } else {
                     // No balls!
                 }
@@ -187,14 +182,12 @@ impl Player {
                 {
                     let ball_pos = ball_global_tfm.translation().xy();
                     let dist_to_ball = ball_pos.distance(player_pos);
-                    let pickup_dist = 10.0;
-                    let can_pickup = dist_to_ball <= pickup_dist;
+                    let can_pickup = dist_to_ball <= PICKUP_RADIUS;
                     if can_pickup {
                         if ball.is_held() {
                             // We can't steal the ball.
                         } else {
                             // Take the ball (regardless of if we claimed it).
-                            // println!("pickup {}", player.team);
                             ball.pick_up(&mut ball_tfm, &mut ball_groups);
                             player.holding_ball = true;
                             commands.entity(player_entity).push_children(&[ball_entity]);
@@ -206,11 +199,9 @@ impl Player {
                     } else {
                         // We haven't arrived at the ball yet. Just keep running.
                         let run_direction = (ball_pos - player_pos).normalize();
-                        accum_linvel += chase_ball_factor * squad_stats.run_speed * run_direction;
+                        accum_linvel += CHASE_BALL_FACTOR * squad_stats.run_speed * run_direction;
 
-                        // If we're close enough, claim the ball (for this team).
-                        let claim_dist = 50.0;
-                        if !player.claimed_ball && dist_to_ball < claim_dist {
+                        if !player.claimed_ball && dist_to_ball < CLAIM_RADIUS {
                             if ball.claim(player.claimant_group_mask()) {
                                 player.claimed_ball = true;
                             } else {
@@ -222,8 +213,6 @@ impl Player {
                 }
             }
 
-            // Try to avoid other players in some radius.
-            let avoid_radius = 30.0;
             let select_all_players = QueryFilter::new().groups(CollisionGroups::new(
                 collision::groups::QUERY,
                 collision::groups::PLAYER,
@@ -233,7 +222,7 @@ impl Player {
             rapier_context.intersections_with_shape(
                 player_pos,
                 0.0,
-                &Collider::ball(avoid_radius),
+                &Collider::ball(AVOID_RADIUS),
                 select_all_players,
                 |other_player_entity| {
                     n_players_nearby += 1;
@@ -246,7 +235,7 @@ impl Player {
                 },
             );
             if n_players_nearby > 0 {
-                accum_linvel += avoid_factor * (sum_nearby_dist / n_players_nearby as f32);
+                accum_linvel += AVOID_FACTOR * (sum_nearby_dist / n_players_nearby as f32);
             }
 
             assert!(accum_linvel.is_finite());

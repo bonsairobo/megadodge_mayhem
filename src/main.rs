@@ -16,6 +16,10 @@ use bevy_rapier3d::prelude::*;
 use collision::handle_collision_events;
 use gym::{Gym, GymAssets, GymParams};
 use player::Player;
+use smooth_bevy_cameras::controllers::orbit::{
+    OrbitCameraBundle, OrbitCameraController, OrbitCameraPlugin,
+};
+use smooth_bevy_cameras::LookTransformPlugin;
 use stats::AllStats;
 use team::{Team, TeamAssets};
 
@@ -30,6 +34,10 @@ fn main() {
                 ..default()
             }),
             RapierPhysicsPlugin::<NoUserData>::default(),
+            RapierDebugRenderPlugin::default(),
+            // Enables the system that synchronizes your `Transform`s and `LookTransform`s.
+            LookTransformPlugin,
+            OrbitCameraPlugin::default(),
         ))
         .add_systems(Startup, setup)
         .add_systems(
@@ -48,10 +56,16 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(25.0, 25.0, 0.0).looking_at(Vec3::ZERO, Vec3::Y),
-        ..Default::default()
-    });
+    commands
+        .spawn(Camera3dBundle::default())
+        .insert(OrbitCameraBundle::new(
+            OrbitCameraController::default(),
+            Vec3::new(25.0, 25.0, 0.0),
+            Vec3::ZERO,
+            Vec3::Y,
+        ));
+
+    // TODO: more lights
     commands.spawn(PointLightBundle {
         point_light: PointLight {
             intensity: 1000.0,

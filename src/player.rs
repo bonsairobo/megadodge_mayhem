@@ -380,6 +380,9 @@ impl<'a> PlayerUpdate<'a> {
 
         if !self.player.throw_cooldown.finished() {
             self.player.throw_cooldown.tick(time.delta());
+            // TODO: we could let the player still try to position for a throw
+            // while the cooldown is ticking, but we want something smarter than
+            // running straight at the enemy
             return;
         }
 

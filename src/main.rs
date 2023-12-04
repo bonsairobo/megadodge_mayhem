@@ -71,6 +71,7 @@ fn setup(
     // TODO: animated spotlights could look really cool
     let hhe = 0.5 * he;
     let light_positions = [
+        Vec3::new(0.0, 5.0, 0.0),
         Vec3::new(-hhe.x, 5.0, -hhe.z),
         Vec3::new(hhe.x, 5.0, -hhe.z),
         Vec3::new(-hhe.x, 5.0, hhe.z),

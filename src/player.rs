@@ -1,5 +1,6 @@
 use crate::{
     ball::{Ball, BallAssets},
+    boundaries::Boundaries,
     collision,
     parameters::{
         AVOID_FACTOR, AVOID_RADIUS, CHASE_FACTOR, CLAIM_RADIUS, PICKUP_RADIUS,
@@ -98,6 +99,7 @@ impl Player {
         rapier_context: Res<RapierContext>,
         ball_assets: Res<BallAssets>,
         stats: Res<AllStats>,
+        boundaries: Res<Boundaries>,
         teams: Query<&Team>,
         mut players: Query<(
             Entity,
@@ -105,6 +107,7 @@ impl Player {
             &GlobalTransform,
             &ViewVisibility,
             &mut Player,
+            &mut Transform,
             &mut Velocity,
         )>,
         player_transforms: Query<&GlobalTransform, With<Player>>,
@@ -126,16 +129,23 @@ impl Player {
             player_global_tfm,
             view_visibility,
             mut player,
+            mut player_tfm,
             mut player_velocity,
         ) in players.iter_mut()
         {
             let is_out = player.is_out;
 
+            let mut player_pos = player_global_tfm.translation();
+            if !is_out {
+                player_pos = player_pos.clamp(boundaries.min, boundaries.max);
+                player_tfm.translation = player_pos;
+            }
+
             let mut update = PlayerUpdate {
                 team: *player_team,
                 stats: &stats.squads[player.squad as usize],
                 entity: player_entity,
-                position: player_global_tfm.translation(),
+                position: player_pos,
                 view_visibility: *view_visibility,
                 player: &mut player,
                 // Accumulate velocity vector from multiple competing factors.

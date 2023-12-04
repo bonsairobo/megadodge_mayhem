@@ -1,5 +1,6 @@
 mod aabb;
 mod ball;
+mod boundaries;
 mod collision;
 mod gym;
 mod manager;
@@ -13,6 +14,7 @@ use aabb::Aabb2;
 use ball::{Ball, BallAssets};
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
+use boundaries::Boundaries;
 use collision::handle_collision_events;
 use gym::{Gym, GymAssets, GymParams};
 use player::Player;
@@ -82,6 +84,9 @@ fn setup(
 
     Gym::spawn(&mut commands, &gym_assets);
 
+    let he = gym_params.half_extents();
+    let boundaries = Boundaries { min: -he, max: he };
+
     let team_assets = TeamAssets::new(&mut meshes, &mut materials);
     let ball_assets = BallAssets::new(&mut meshes, &mut materials);
 
@@ -118,6 +123,7 @@ fn setup(
     };
 
     commands.insert_resource(ball_assets);
+    commands.insert_resource(boundaries);
     commands.insert_resource(stats);
     commands.insert_resource(team_assets);
 }

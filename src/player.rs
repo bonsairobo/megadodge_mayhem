@@ -425,8 +425,9 @@ impl<'a> PlayerUpdate<'a> {
             self.player.holding_ball = false;
 
             // Spawn a thrown ball.
+            let loft = 2.0 * Vec3::Y;
             let throw_dir = (projection.point - self.position).normalize();
-            let throw_velocity = self.stats.throw_speed * throw_dir;
+            let throw_velocity = self.stats.throw_speed * throw_dir + loft;
             let throw_start = self.position + throw_dir * THROW_START_RADIUS;
             Ball::spawn_thrown(commands, ball_assets, throw_start, throw_velocity);
         } else {

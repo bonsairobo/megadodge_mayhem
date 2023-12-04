@@ -5,7 +5,7 @@ use crate::{
     team::TeamAssets,
 };
 use bevy::prelude::*;
-use bevy_rapier3d::prelude::{ActiveEvents, Ccd, CollisionEvent, CollisionGroups};
+use bevy_rapier3d::prelude::{ActiveEvents, Ccd, CollisionEvent, CollisionGroups, RigidBody};
 
 pub mod groups {
     use bevy_rapier3d::prelude::Group;
@@ -18,10 +18,12 @@ pub mod groups {
 }
 
 pub fn handle_ball_player_collisions(
+    mut commands: Commands,
     team_assets: Res<TeamAssets>,
     mut events: EventReader<CollisionEvent>,
     mut players: Query<(
         &mut Player,
+        &mut RigidBody,
         &mut CollisionGroups,
         &mut Handle<StandardMaterial>,
     )>,
@@ -40,7 +42,7 @@ pub fn handle_ball_player_collisions(
             continue;
         }
 
-        let Ok((mut player, mut player_groups, mut player_material)) =
+        let Ok((mut player, mut player_body, mut player_groups, mut player_material)) =
             players.get_mut(player_entity)
         else {
             continue;
@@ -50,7 +52,14 @@ pub fn handle_ball_player_collisions(
         // println!("player hit");
 
         // Player failed to catch it, they are out.
-        player.set_out(&team_assets, &mut player_groups, &mut player_material);
+        player.set_out(
+            &mut commands,
+            &team_assets,
+            player_entity,
+            &mut player_body,
+            &mut player_groups,
+            &mut player_material,
+        );
     }
 }
 

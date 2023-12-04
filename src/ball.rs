@@ -116,7 +116,8 @@ impl Ball {
             Self::thrown_groups(),
             Ccd::enabled(),
             ActiveEvents::COLLISION_EVENTS,
-            ColliderMassProperties::Density(0.5),
+            // Increased density for better impact.
+            ColliderMassProperties::Density(10.0),
             Velocity::linear(velocity),
             Damping {
                 // Air friction.

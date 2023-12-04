@@ -3,7 +3,7 @@ use crate::{
     boundaries::Boundaries,
     collision,
     parameters::{
-        AVOID_FACTOR, AVOID_RADIUS, CHASE_FACTOR, CLAIM_RADIUS, PICKUP_RADIUS,
+        AVOID_FACTOR, AVOID_RADIUS, CHASE_FACTOR, CLAIM_RADIUS, DESPAWN_SECONDS, PICKUP_RADIUS,
         THROW_COOLDOWN_MILLIS, THROW_START_RADIUS,
     },
     stats::{AllStats, PlayerStats},
@@ -11,8 +11,8 @@ use crate::{
 };
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::{
-    Collider, ColliderMassProperties, CollisionGroups, QueryFilter, RapierContext, RigidBody,
-    Velocity,
+    Collider, ColliderMassProperties, CollisionGroups, LockedAxes, QueryFilter, RapierContext,
+    RigidBody, Velocity,
 };
 use std::time::Duration;
 
@@ -39,7 +39,10 @@ impl Player {
     }
 
     fn out_of_play_groups() -> CollisionGroups {
-        CollisionGroups::new(collision::groups::PLAYER, collision::groups::THROWN_BALL)
+        CollisionGroups::new(
+            collision::groups::PLAYER,
+            collision::groups::THROWN_BALL | collision::groups::BOUNDARIES,
+        )
     }
 
     fn new(team: u8, squad: u8) -> Self {
@@ -56,14 +59,20 @@ impl Player {
 
     pub fn set_out(
         &mut self,
+        commands: &mut Commands,
         assets: &TeamAssets,
+        entity: Entity,
+        body: &mut RigidBody,
         groups: &mut CollisionGroups,
         material: &mut Handle<StandardMaterial>,
     ) {
         self.is_out = true;
+        *body = RigidBody::Dynamic;
         *groups = Self::out_of_play_groups();
         let assets = &assets.teams[self.team as usize];
         *material = assets.out_of_play_material.clone();
+
+        commands.entity(entity).insert(DespawnTimer::new());
     }
 
     pub fn spawn(
@@ -85,13 +94,15 @@ impl Player {
             },
             RigidBody::KinematicVelocityBased,
             Velocity::zero(),
-            Collider::cuboid(
-                0.5 * assets.size.x,
-                0.5 * assets.size.y,
-                0.5 * assets.size.z,
+            Collider::capsule(
+                -0.5 * assets.capsule_length * Vec3::Y,
+                0.5 * assets.capsule_length * Vec3::Y,
+                assets.capsule_radius,
             ),
             Self::in_play_groups(),
             ColliderMassProperties::Density(1.0),
+            // Prevents unatural amounts of spinning when hit with a ball.
+            LockedAxes::ROTATION_LOCKED_Y,
         ));
     }
 
@@ -110,10 +121,10 @@ impl Player {
             Entity,
             &Team,
             &GlobalTransform,
-            &ViewVisibility,
             &mut Player,
             &mut Transform,
             &mut Velocity,
+            Option<&mut DespawnTimer>,
         )>,
         player_transforms: Query<&GlobalTransform, With<Player>>,
         mut balls: Query<
@@ -132,10 +143,10 @@ impl Player {
             player_entity,
             player_team,
             player_global_tfm,
-            view_visibility,
             mut player,
             mut player_tfm,
             mut player_velocity,
+            mut player_despawn_timer,
         ) in players.iter_mut()
         {
             let is_out = player.is_out;
@@ -151,14 +162,18 @@ impl Player {
                 stats: &stats.squads[player.squad as usize],
                 entity: player_entity,
                 position: player_pos,
-                view_visibility: *view_visibility,
                 player: &mut player,
                 // Accumulate velocity vector from multiple competing factors.
                 accum_linvel: Vec3::ZERO,
             };
 
             if is_out {
-                update.walk_out(&mut commands, &ball_assets);
+                update.fall_out(
+                    &mut commands,
+                    &time,
+                    &ball_assets,
+                    player_despawn_timer.as_mut(),
+                );
             } else {
                 update.throw_ball_at_enemy(
                     &mut commands,
@@ -170,9 +185,8 @@ impl Player {
                 update.choose_ball_to_chase(&rapier_context, &mut balls);
                 update.chase_ball(&mut commands, &mut balls);
                 update.avoid_other_players(&rapier_context, &player_transforms);
+                update.set_velocity(&mut player_velocity);
             }
-
-            update.set_velocity(&mut player_velocity);
         }
     }
 
@@ -187,7 +201,6 @@ struct PlayerUpdate<'a> {
     stats: &'a PlayerStats,
     entity: Entity,
     position: Vec3,
-    view_visibility: ViewVisibility,
     player: &'a mut Player,
     accum_linvel: Vec3,
 }
@@ -201,13 +214,8 @@ impl<'a> PlayerUpdate<'a> {
 
         assert!(accum_linvel.is_finite(), "{}", accum_linvel);
         if accum_linvel.length_squared() > 0.0 {
-            let speed = if self.player.is_out {
-                self.stats.walk_speed
-            } else {
-                self.stats.run_speed
-            };
             velocity.linvel = accum_linvel;
-            velocity.linvel = speed * velocity.linvel.normalize();
+            velocity.linvel = self.stats.run_speed * velocity.linvel.normalize();
         }
         assert!(velocity.linvel.is_finite(), "{}", velocity.linvel);
     }
@@ -423,7 +431,7 @@ impl<'a> PlayerUpdate<'a> {
             self.player.holding_ball = false;
 
             // Spawn a thrown ball.
-            let loft = 2.0 * Vec3::Y;
+            let loft = 4.0 * Vec3::Y;
             let throw_dir = (projection.point - self.position).normalize();
             let throw_velocity = self.stats.throw_speed * throw_dir + loft;
             let throw_start = self.position + throw_dir * THROW_START_RADIUS;
@@ -435,29 +443,35 @@ impl<'a> PlayerUpdate<'a> {
         }
     }
 
-    fn walk_out(&mut self, commands: &mut Commands, ball_assets: &BallAssets) {
+    fn fall_out(
+        &mut self,
+        commands: &mut Commands,
+        time: &Time,
+        ball_assets: &BallAssets,
+        despawn_timer: Option<&mut Mut<DespawnTimer>>,
+    ) {
         if self.player.holding_ball {
             // Drop the ball.
+            // TODO: preserve the player's original ball and make it dynamic?
             Ball::spawn_on_ground(commands, ball_assets, self.position);
             commands.entity(self.entity).despawn_descendants();
             self.player.holding_ball = false;
         }
 
-        // If we're already out of view, despawn.
-        if !*self.view_visibility {
-            commands.entity(self.entity).despawn();
-            return;
+        if let Some(t) = despawn_timer {
+            t.timer.tick(time.delta());
+            if t.timer.finished() {
+                commands.entity(self.entity).despawn();
+            }
         }
-
-        // Walk away from the origin.
-        let run_direction = self.position.normalize();
-        self.accum_linvel += CHASE_FACTOR * run_direction;
     }
 }
 
 pub struct PlayerAssets {
     pub color: Color,
     pub size: Vec3,
+    pub capsule_radius: f32,
+    pub capsule_length: f32,
     pub in_play_material: Handle<StandardMaterial>,
     pub out_of_play_material: Handle<StandardMaterial>,
     pub mesh: Handle<Mesh>,
@@ -471,17 +485,19 @@ impl PlayerAssets {
     ) -> Self {
         // 1.8 meters tall.
         let height = 1.8;
-        let radius = 0.18;
-        let diam = 2.0 * radius;
-        let depth = height - diam;
+        let capsule_radius = 0.18;
+        let diam = 2.0 * capsule_radius;
+        let capsule_length = height - diam;
         let size = Vec3::new(diam, height, diam);
         Self {
             color,
             size,
+            capsule_radius,
+            capsule_length,
             mesh: meshes.add(
                 shape::Capsule {
-                    radius,
-                    depth,
+                    radius: capsule_radius,
+                    depth: capsule_length,
                     ..default()
                 }
                 .try_into()
@@ -489,6 +505,19 @@ impl PlayerAssets {
             ),
             in_play_material: materials.add(color.into()),
             out_of_play_material: materials.add(color.with_a(0.2).into()),
+        }
+    }
+}
+
+#[derive(Component)]
+pub struct DespawnTimer {
+    timer: Timer,
+}
+
+impl DespawnTimer {
+    fn new() -> Self {
+        Self {
+            timer: Timer::new(Duration::from_secs(DESPAWN_SECONDS), TimerMode::Once),
         }
     }
 }

@@ -19,8 +19,6 @@ use player::Player;
 use stats::AllStats;
 use team::{Team, TeamAssets};
 
-// BUG: gravity scaling is way off, balls are falling in slow motion
-
 fn main() {
     App::new()
         .add_plugins((
@@ -33,6 +31,11 @@ fn main() {
             }),
             RapierPhysicsPlugin::<NoUserData>::default(),
         ))
+        .insert_resource(RapierConfiguration {
+            // HACK: we should just fix the scale of entities
+            gravity: -200.0 * Vec3::Y,
+            ..default()
+        })
         .add_systems(Startup, setup)
         .add_systems(
             Update,
@@ -51,7 +54,7 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(500.0, 500.0, 200.0).looking_at(Vec3::ZERO, Vec3::Y),
+        transform: Transform::from_xyz(500.0, 500.0, 0.0).looking_at(Vec3::ZERO, Vec3::Y),
         ..Default::default()
     });
     commands.spawn(PointLightBundle {

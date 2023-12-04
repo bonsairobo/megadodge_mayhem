@@ -5,6 +5,9 @@ use bevy_rapier3d::prelude::{Collider, CollisionGroups, RigidBody};
 #[derive(Component)]
 pub struct Gym;
 
+#[derive(Component)]
+pub struct Floor;
+
 impl Gym {
     pub fn spawn(commands: &mut Commands, assets: &GymAssets) {
         let params = &assets.params;
@@ -19,6 +22,8 @@ impl Gym {
 
         // floor
         commands.spawn((
+            Floor,
+            Gym,
             PbrBundle {
                 mesh: assets.floor_mesh.clone(),
                 material: assets.floor_material.clone(),
@@ -55,6 +60,7 @@ impl Gym {
         ];
         for (position, collider) in walls {
             commands.spawn((
+                Gym,
                 Transform::from_translation(position),
                 GlobalTransform::default(),
                 RigidBody::Fixed,

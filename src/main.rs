@@ -15,7 +15,7 @@ use ball::{Ball, BallAssets};
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 use boundaries::Boundaries;
-use collision::handle_collision_events;
+use collision::{handle_ball_floor_collisions, handle_ball_player_collisions};
 use gym::{Gym, GymAssets, GymParams};
 use player::Player;
 use smooth_bevy_cameras::controllers::orbit::{
@@ -45,8 +45,8 @@ fn main() {
             Update,
             (
                 Player::update,
-                Ball::handle_cooldown,
-                handle_collision_events,
+                handle_ball_player_collisions,
+                handle_ball_floor_collisions,
             ),
         )
         .run();

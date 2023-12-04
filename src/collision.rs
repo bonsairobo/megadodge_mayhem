@@ -1,6 +1,10 @@
-use crate::{ball::Ball, player::Player};
+use crate::{
+    ball::{Ball, Cooldown},
+    gym::Floor,
+    player::Player,
+};
 use bevy::prelude::*;
-use bevy_rapier3d::prelude::{CollisionEvent, CollisionGroups};
+use bevy_rapier3d::prelude::{ActiveEvents, Ccd, CollisionEvent, CollisionGroups};
 
 pub mod groups {
     use bevy_rapier3d::prelude::Group;
@@ -12,30 +16,69 @@ pub mod groups {
     pub const BOUNDARIES: Group = Group::GROUP_5;
 }
 
-pub fn handle_collision_events(
+pub fn handle_ball_player_collisions(
     mut events: EventReader<CollisionEvent>,
     mut players: Query<(&mut Player, &mut CollisionGroups)>,
     balls: Query<&Ball>,
 ) {
     for event in events.read() {
-        if let &CollisionEvent::Started(mut player_entity, mut ball_entity, _flags) = event {
-            if !players.contains(player_entity) {
-                std::mem::swap(&mut player_entity, &mut ball_entity);
-            }
-            if !players.contains(player_entity) || !balls.contains(ball_entity) {
-                // Only handle player on ball events.
-                continue;
-            }
+        let &CollisionEvent::Started(mut player_entity, mut ball_entity, _flags) = event else {
+            continue;
+        };
 
-            let Ok((mut player, mut player_groups)) = players.get_mut(player_entity) else {
-                continue;
-            };
-
-            // Player got hit by thrown ball. Let's see if they can catch it.
-            // println!("player hit");
-
-            // Player failed to catch it, they are out.
-            player.set_out(&mut player_groups);
+        if !players.contains(player_entity) {
+            std::mem::swap(&mut player_entity, &mut ball_entity);
         }
+        if !players.contains(player_entity) || !balls.contains(ball_entity) {
+            // Only handle player on ball events.
+            continue;
+        }
+
+        let Ok((mut player, mut player_groups)) = players.get_mut(player_entity) else {
+            continue;
+        };
+
+        // Player got hit by thrown ball. Let's see if they can catch it.
+        // println!("player hit");
+
+        // Player failed to catch it, they are out.
+        player.set_out(&mut player_groups);
+    }
+}
+
+pub fn handle_ball_floor_collisions(
+    mut commands: Commands,
+    mut events: EventReader<CollisionEvent>,
+    mut balls: Query<&mut CollisionGroups, With<Ball>>,
+    floor: Query<Entity, With<Floor>>,
+) {
+    let Ok(floor_entity) = floor.get_single() else {
+        return;
+    };
+
+    for event in events.read() {
+        let &CollisionEvent::Started(mut this_floor_entity, mut ball_entity, _flags) = event else {
+            continue;
+        };
+
+        if this_floor_entity != floor_entity {
+            if ball_entity != floor_entity {
+                continue;
+            }
+            std::mem::swap(&mut ball_entity, &mut this_floor_entity);
+        }
+        if !balls.contains(ball_entity) {
+            // Only handle floor on ball events.
+            continue;
+        }
+
+        let Ok(mut ball_groups) = balls.get_mut(ball_entity) else {
+            continue;
+        };
+
+        *ball_groups = Ball::ground_groups();
+        commands
+            .entity(ball_entity)
+            .remove::<(ActiveEvents, Cooldown, Ccd)>();
     }
 }

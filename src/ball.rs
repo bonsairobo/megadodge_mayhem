@@ -1,7 +1,6 @@
 use crate::collision;
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
-use std::time::Duration;
 
 #[derive(Component, Default)]
 pub struct Ball {
@@ -18,7 +17,7 @@ impl Ball {
         self.is_held
     }
 
-    fn ground_groups() -> CollisionGroups {
+    pub fn ground_groups() -> CollisionGroups {
         CollisionGroups::new(
             collision::groups::GROUND_BALL,
             collision::groups::QUERY | collision::groups::BOUNDARIES,
@@ -133,30 +132,7 @@ impl Ball {
                 coefficient: 0.7,
                 ..default()
             },
-            // After the timer is done, the ball can be picked up again.
-            Cooldown {
-                timer: Timer::new(Duration::from_secs(2), TimerMode::Once),
-            },
         ));
-    }
-
-    pub fn handle_cooldown(
-        mut commands: Commands,
-        time: Res<Time>,
-        mut cooling_balls: Query<
-            (Entity, &mut Cooldown, &mut RigidBody, &mut CollisionGroups),
-            With<Ball>,
-        >,
-    ) {
-        for (entity, mut cool, _body, mut groups) in cooling_balls.iter_mut() {
-            cool.timer.tick(time.delta());
-            if cool.timer.finished() {
-                *groups = Self::ground_groups();
-                commands
-                    .entity(entity)
-                    .remove::<(ActiveEvents, Cooldown, Ccd)>();
-            }
-        }
     }
 }
 

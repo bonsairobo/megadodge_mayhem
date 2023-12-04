@@ -33,7 +33,9 @@ impl Player {
     fn in_play_groups() -> CollisionGroups {
         CollisionGroups::new(
             collision::groups::PLAYER,
-            collision::groups::QUERY | collision::groups::THROWN_BALL,
+            collision::groups::QUERY
+                | collision::groups::THROWN_BALL
+                | collision::groups::BOUNDARIES,
         )
     }
 
@@ -448,9 +450,12 @@ impl PlayerAssets {
         meshes: &mut Assets<Mesh>,
         materials: &mut Assets<StandardMaterial>,
     ) -> Self {
-        let radius = 4.0;
-        let depth = 16.0;
-        let size = Vec3::new(2.0 * radius, depth + 2.0 * radius, 2.0 * radius);
+        // 1.8 meters tall.
+        let height = 1.8;
+        let radius = 0.18;
+        let diam = 2.0 * radius;
+        let depth = height - diam;
+        let size = Vec3::new(diam, height, diam);
         Self {
             color,
             size,

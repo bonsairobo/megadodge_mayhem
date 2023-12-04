@@ -74,15 +74,13 @@ impl Gym {
 pub struct GymParams {
     pub size: Vec3,
     pub thickness: f32,
-    pub wall_alpha: f32,
 }
 
 impl Default for GymParams {
     fn default() -> Self {
         Self {
-            size: Vec3::new(500.0, 500.0, 800.0),
-            thickness: 10.0,
-            wall_alpha: 0.1,
+            size: Vec3::new(20.0, 100.0, 36.0),
+            thickness: 0.1,
         }
     }
 }

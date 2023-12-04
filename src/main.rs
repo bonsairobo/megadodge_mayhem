@@ -31,11 +31,6 @@ fn main() {
             }),
             RapierPhysicsPlugin::<NoUserData>::default(),
         ))
-        .insert_resource(RapierConfiguration {
-            // HACK: we should just fix the scale of entities
-            gravity: -200.0 * Vec3::Y,
-            ..default()
-        })
         .add_systems(Startup, setup)
         .add_systems(
             Update,
@@ -54,17 +49,17 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(500.0, 500.0, 0.0).looking_at(Vec3::ZERO, Vec3::Y),
+        transform: Transform::from_xyz(25.0, 25.0, 0.0).looking_at(Vec3::ZERO, Vec3::Y),
         ..Default::default()
     });
     commands.spawn(PointLightBundle {
         point_light: PointLight {
-            intensity: 500_000.0,
-            range: 5000.,
+            intensity: 1000.0,
+            range: 50.0,
             shadows_enabled: true,
             ..default()
         },
-        transform: Transform::from_xyz(0.0, 200.0, 0.0),
+        transform: Transform::from_xyz(0.0, 5.0, 0.0),
         ..default()
     });
 
@@ -76,19 +71,19 @@ fn setup(
     let team_assets = TeamAssets::new(&mut meshes, &mut materials);
     let ball_assets = BallAssets::new(&mut meshes, &mut materials);
 
-    let n_balls = 40;
+    let n_balls = 20;
     Ball::spawn_multiple_in_line(
         &mut commands,
         &ball_assets,
         n_balls,
-        [-200.0, 0.0, 0.0].into(),
-        [200.0, 0.0, 0.0].into(),
+        [-9.0, 0.0, 0.0].into(),
+        [9.0, 0.0, 0.0].into(),
     );
 
-    let team0_aabb = Aabb2::new([-200.0, 275.0].into(), [200.0, 325.0].into());
-    let team1_aabb = Aabb2::new([-200.0, -325.0].into(), [200.0, -275.0].into());
+    let team0_aabb = Aabb2::new([-10.0, 15.0 - 1.0].into(), [10.0, 15.0 + 1.0].into());
+    let team1_aabb = Aabb2::new([-10.0, -15.0 - 1.0].into(), [10.0, -15.0 + 1.0].into());
 
-    let team_size = 80;
+    let team_size = 40;
     Team::spawn(
         &mut commands,
         &team_assets.teams[0],

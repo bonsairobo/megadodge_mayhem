@@ -12,7 +12,7 @@ pub struct Ball {
 }
 
 impl Ball {
-    const HELD_OFFSET: Vec3 = Vec3::new(5.0, 0.0, 0.0);
+    const HELD_OFFSET: Vec3 = Vec3::new(0.4, 0.0, 0.0);
 
     pub fn is_held(&self) -> bool {
         self.is_held
@@ -169,7 +169,7 @@ pub struct BallAssets {
 
 impl BallAssets {
     pub fn new(meshes: &mut Assets<Mesh>, materials: &mut Assets<StandardMaterial>) -> Self {
-        let radius = 4.0;
+        let radius = 0.2;
         Self {
             radius,
             mesh: meshes.add(

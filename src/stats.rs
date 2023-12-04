@@ -24,12 +24,12 @@ pub struct PlayerStats {
 impl Default for PlayerStats {
     fn default() -> Self {
         Self {
-            dodge_speed: 150.0,
-            run_speed: 100.0,
-            walk_speed: 60.0,
+            dodge_speed: 1.0,
+            run_speed: 4.0,
+            walk_speed: 3.0,
             throw_accuracy: 0.8,
-            throw_distance: 50.0,
-            throw_speed: 300.0,
+            throw_distance: 10.0,
+            throw_speed: 20.0,
             p_block: 0.7,
             p_catch: 0.2,
         }

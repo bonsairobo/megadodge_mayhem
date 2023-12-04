@@ -63,8 +63,6 @@ impl Player {
         self.is_out = true;
         *groups = Self::out_of_play_groups();
         let assets = &assets.teams[self.team as usize];
-        // PERF: the first time we set a transparent material, there is a large
-        // stutter. There must be some lazy loading happening within bevy render.
         *material = assets.out_of_play_material.clone();
     }
 

@@ -129,7 +129,9 @@ impl GymAssets {
                 .try_into()
                 .unwrap(),
             ),
-            floor_material: materials.add(Color::GRAY.into()),
+            // HACK: make the floor a little transparent to hide a stutter that
+            // occurs the first time a transparent material is rendered
+            floor_material: materials.add(Color::GRAY.with_a(0.99).into()),
         }
     }
 }

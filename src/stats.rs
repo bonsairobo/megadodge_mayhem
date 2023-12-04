@@ -25,7 +25,7 @@ impl Default for PlayerStats {
     fn default() -> Self {
         Self {
             dodge_speed: 1.0,
-            run_speed: 4.0,
+            run_speed: 7.0,
             walk_speed: 3.0,
             throw_accuracy: 0.8,
             throw_distance: 10.0,

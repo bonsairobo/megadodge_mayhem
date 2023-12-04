@@ -60,7 +60,7 @@ fn setup(
         .spawn(Camera3dBundle::default())
         .insert(OrbitCameraBundle::new(
             OrbitCameraController::default(),
-            Vec3::new(25.0, 25.0, 0.0),
+            Vec3::new(50.0, 50.0, 0.0),
             Vec3::ZERO,
             Vec3::Y,
         ));
@@ -98,7 +98,7 @@ fn setup(
     let team_assets = TeamAssets::new(&mut meshes, &mut materials);
     let ball_assets = BallAssets::new(&mut meshes, &mut materials);
 
-    let n_balls = 20;
+    let n_balls = 100;
     Ball::spawn_multiple_in_line(
         &mut commands,
         &ball_assets,
@@ -109,7 +109,7 @@ fn setup(
 
     let spawn_aabbs = gym_params.spawn_aabbs();
 
-    let team_size = 40;
+    let team_size = 160;
     Team::spawn(
         &mut commands,
         &team_assets.teams[0],

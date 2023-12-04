@@ -7,7 +7,7 @@ use crate::{
         THROW_COOLDOWN_MILLIS, THROW_START_RADIUS,
     },
     stats::{AllStats, PlayerStats},
-    team::Team,
+    team::{Team, TeamAssets},
 };
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::{
@@ -56,9 +56,16 @@ impl Player {
         }
     }
 
-    pub fn set_out(&mut self, groups: &mut CollisionGroups) {
+    pub fn set_out(
+        &mut self,
+        assets: &TeamAssets,
+        groups: &mut CollisionGroups,
+        material: &mut Handle<StandardMaterial>,
+    ) {
         self.is_out = true;
         *groups = Self::out_of_play_groups();
+        let assets = &assets.teams[self.team as usize];
+        *material = assets.out_of_play_material.clone();
     }
 
     pub fn spawn(
@@ -74,7 +81,7 @@ impl Player {
             Team::new(team),
             PbrBundle {
                 mesh: assets.mesh.clone(),
-                material: assets.material.clone(),
+                material: assets.in_play_material.clone(),
                 transform: Transform::from_translation(position),
                 ..default()
             },
@@ -164,9 +171,9 @@ impl Player {
                 );
                 update.choose_ball_to_chase(&rapier_context, &mut balls);
                 update.chase_ball(&mut commands, &mut balls);
+                update.avoid_other_players(&rapier_context, &player_transforms);
             }
 
-            update.avoid_other_players(&rapier_context, &player_transforms);
             update.set_velocity(&mut player_velocity);
         }
     }
@@ -446,11 +453,11 @@ impl<'a> PlayerUpdate<'a> {
     }
 }
 
-#[derive(Resource)]
 pub struct PlayerAssets {
     pub color: Color,
     pub size: Vec3,
-    pub material: Handle<StandardMaterial>,
+    pub in_play_material: Handle<StandardMaterial>,
+    pub out_of_play_material: Handle<StandardMaterial>,
     pub mesh: Handle<Mesh>,
 }
 
@@ -478,7 +485,8 @@ impl PlayerAssets {
                 .try_into()
                 .unwrap(),
             ),
-            material: materials.add(color.into()),
+            in_play_material: materials.add(color.into()),
+            out_of_play_material: materials.add(color.with_a(0.2).into()),
         }
     }
 }

@@ -1,6 +1,7 @@
 mod aabb;
 mod ball;
 mod collision;
+mod gym;
 mod manager;
 mod parameters;
 mod player;
@@ -13,9 +14,12 @@ use ball::{Ball, BallAssets};
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 use collision::handle_collision_events;
+use gym::{Gym, GymAssets, GymParams};
 use player::Player;
 use stats::AllStats;
 use team::{Team, TeamAssets};
+
+// BUG: gravity scaling is way off, balls are falling in slow motion
 
 fn main() {
     App::new()
@@ -47,7 +51,7 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(500.0, 500.0, 500.0).looking_at(Vec3::ZERO, Vec3::Y),
+        transform: Transform::from_xyz(500.0, 500.0, 200.0).looking_at(Vec3::ZERO, Vec3::Y),
         ..Default::default()
     });
     commands.spawn(PointLightBundle {
@@ -61,10 +65,15 @@ fn setup(
         ..default()
     });
 
+    let gym_params = GymParams::default();
+    let gym_assets = GymAssets::new(gym_params, &mut meshes, &mut materials);
+
+    Gym::spawn(&mut commands, &gym_assets);
+
     let team_assets = TeamAssets::new(&mut meshes, &mut materials);
     let ball_assets = BallAssets::new(&mut meshes, &mut materials);
 
-    let n_balls = 20;
+    let n_balls = 40;
     Ball::spawn_multiple_in_line(
         &mut commands,
         &ball_assets,
@@ -76,7 +85,7 @@ fn setup(
     let team0_aabb = Aabb2::new([-200.0, 275.0].into(), [200.0, 325.0].into());
     let team1_aabb = Aabb2::new([-200.0, -325.0].into(), [200.0, -275.0].into());
 
-    let team_size = 40;
+    let team_size = 80;
     Team::spawn(
         &mut commands,
         &team_assets.teams[0],

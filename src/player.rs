@@ -26,8 +26,6 @@ pub struct Player {
     squad: u8,
 }
 
-// TODO: wait time betweeen picking up ball and throwing it
-
 // PERF: we could limit how many spatial queries are done each frame with a
 // queue, since every player doesn't **need** to do queries every frame
 

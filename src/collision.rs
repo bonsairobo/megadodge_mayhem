@@ -9,6 +9,7 @@ pub mod groups {
     pub const PLAYER: Group = Group::GROUP_2;
     pub const GROUND_BALL: Group = Group::GROUP_3;
     pub const THROWN_BALL: Group = Group::GROUP_4;
+    pub const BOUNDARIES: Group = Group::GROUP_5;
 }
 
 pub fn handle_collision_events(

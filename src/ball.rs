@@ -11,8 +11,6 @@ pub struct Ball {
     is_held: bool,
 }
 
-// TODO: differentiate (visually) between balls on ground and in air
-
 impl Ball {
     const HELD_OFFSET: Vec3 = Vec3::new(5.0, 0.0, 0.0);
 
@@ -21,13 +19,16 @@ impl Ball {
     }
 
     fn ground_groups() -> CollisionGroups {
-        CollisionGroups::new(collision::groups::GROUND_BALL, collision::groups::QUERY)
+        CollisionGroups::new(
+            collision::groups::GROUND_BALL,
+            collision::groups::QUERY | collision::groups::BOUNDARIES,
+        )
     }
 
     fn thrown_groups() -> CollisionGroups {
         CollisionGroups::new(
             collision::groups::PLAYER | collision::groups::THROWN_BALL,
-            collision::groups::PLAYER,
+            collision::groups::PLAYER | collision::groups::BOUNDARIES,
         )
     }
 

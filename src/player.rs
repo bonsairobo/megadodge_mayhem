@@ -34,9 +34,7 @@ impl Player {
     fn in_play_groups() -> CollisionGroups {
         CollisionGroups::new(
             collision::groups::PLAYER,
-            collision::groups::QUERY
-                | collision::groups::THROWN_BALL
-                | collision::groups::BOUNDARIES,
+            collision::groups::QUERY | collision::groups::THROWN_BALL,
         )
     }
 

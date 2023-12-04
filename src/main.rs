@@ -36,8 +36,7 @@ fn main() {
                 ..default()
             }),
             RapierPhysicsPlugin::<NoUserData>::default(),
-            RapierDebugRenderPlugin::default(),
-            // Enables the system that synchronizes your `Transform`s and `LookTransform`s.
+            // RapierDebugRenderPlugin::default(),
             LookTransformPlugin,
             OrbitCameraPlugin::default(),
         ))

@@ -1,9 +1,9 @@
 use crate::{ball::Ball, player::Player};
 use bevy::prelude::*;
-use bevy_rapier2d::prelude::{CollisionEvent, CollisionGroups};
+use bevy_rapier3d::prelude::{CollisionEvent, CollisionGroups};
 
 pub mod groups {
-    use bevy_rapier2d::prelude::Group;
+    use bevy_rapier3d::prelude::Group;
 
     pub const QUERY: Group = Group::GROUP_1;
     pub const PLAYER: Group = Group::GROUP_2;

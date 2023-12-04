@@ -9,7 +9,7 @@ use crate::{
     team::Team,
 };
 use bevy::prelude::*;
-use bevy_rapier2d::prelude::{
+use bevy_rapier3d::prelude::{
     Collider, ColliderMassProperties, CollisionGroups, QueryFilter, RapierContext, RigidBody,
     Velocity,
 };
@@ -32,8 +32,6 @@ pub struct Player {
 // queue, since every player doesn't **need** to do queries every frame
 
 impl Player {
-    pub const DEPTH_LAYER: f32 = 0.0;
-
     fn in_play_groups() -> CollisionGroups {
         CollisionGroups::new(
             collision::groups::PLAYER,
@@ -67,23 +65,25 @@ impl Player {
         assets: &PlayerAssets,
         team: u8,
         squad: u8,
-        position: Vec2,
+        mut position: Vec3,
     ) {
+        position.y = 0.5 * assets.size.y;
         commands.spawn((
             Self::new(team, squad),
             Team::new(team),
-            SpriteBundle {
-                sprite: Sprite {
-                    color: assets.color,
-                    custom_size: Some(assets.size),
-                    ..default()
-                },
-                transform: Transform::from_translation(position.extend(Self::DEPTH_LAYER)),
+            PbrBundle {
+                mesh: assets.mesh.clone(),
+                material: assets.material.clone(),
+                transform: Transform::from_translation(position),
                 ..default()
             },
             RigidBody::KinematicVelocityBased,
             Velocity::zero(),
-            Collider::cuboid(0.5 * assets.size.x, 0.5 * assets.size.y),
+            Collider::cuboid(
+                0.5 * assets.size.x,
+                0.5 * assets.size.y,
+                0.5 * assets.size.z,
+            ),
             Self::in_play_groups(),
             ColliderMassProperties::Density(1.0),
         ));
@@ -91,6 +91,7 @@ impl Player {
 
     // TODO: try to split this up into multiple systems
     #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::complexity)]
     pub fn update(
         mut commands: Commands,
         time: Res<Time>,
@@ -110,10 +111,11 @@ impl Player {
         mut balls: Query<
             (
                 Entity,
-                &mut Ball,
-                &mut CollisionGroups,
                 &GlobalTransform,
+                &mut Ball,
                 &mut Transform,
+                &mut RigidBody,
+                &mut CollisionGroups,
             ),
             Without<Player>,
         >,
@@ -133,11 +135,11 @@ impl Player {
                 team: *player_team,
                 stats: &stats.squads[player.squad as usize],
                 entity: player_entity,
-                position: player_global_tfm.translation().xy(),
+                position: player_global_tfm.translation(),
                 view_visibility: *view_visibility,
                 player: &mut player,
                 // Accumulate velocity vector from multiple competing factors.
-                accum_linvel: Vec2::ZERO,
+                accum_linvel: Vec3::ZERO,
             };
 
             if is_out {
@@ -169,22 +171,27 @@ struct PlayerUpdate<'a> {
     team: Team,
     stats: &'a PlayerStats,
     entity: Entity,
-    position: Vec2,
+    position: Vec3,
     view_visibility: ViewVisibility,
     player: &'a mut Player,
-    accum_linvel: Vec2,
+    accum_linvel: Vec3,
 }
 
 impl<'a> PlayerUpdate<'a> {
     fn set_velocity(&self, velocity: &mut Velocity) {
-        assert!(self.accum_linvel.is_finite(), "{}", self.accum_linvel);
-        if self.accum_linvel.length_squared() > 0.0 {
+        let mut accum_linvel = self.accum_linvel;
+        // Can't move vertically.
+        // TODO: we might want vertical movement for dodges and animations.
+        accum_linvel.y = 0.0;
+
+        assert!(accum_linvel.is_finite(), "{}", accum_linvel);
+        if accum_linvel.length_squared() > 0.0 {
             let speed = if self.player.is_out {
                 self.stats.walk_speed
             } else {
                 self.stats.run_speed
             };
-            velocity.linvel = self.accum_linvel;
+            velocity.linvel = accum_linvel;
             velocity.linvel = speed * velocity.linvel.normalize();
         }
         assert!(velocity.linvel.is_finite(), "{}", velocity.linvel);
@@ -200,10 +207,10 @@ impl<'a> PlayerUpdate<'a> {
             collision::groups::PLAYER,
         ));
         let mut n_players_nearby = 0;
-        let mut sum_nearby_dist = Vec2::ZERO;
+        let mut sum_nearby_dist = Vec3::ZERO;
         rapier_context.intersections_with_shape(
             self.position,
-            0.0,
+            default(),
             &Collider::ball(AVOID_RADIUS),
             select_all_players,
             |other_player_entity| {
@@ -211,7 +218,7 @@ impl<'a> PlayerUpdate<'a> {
                 let Ok(other_player_transform) = player_transforms.get(other_player_entity) else {
                     return true;
                 };
-                sum_nearby_dist += self.position - other_player_transform.translation().xy();
+                sum_nearby_dist += self.position - other_player_transform.translation();
                 true
             },
         );
@@ -220,16 +227,18 @@ impl<'a> PlayerUpdate<'a> {
         }
     }
 
+    #[allow(clippy::complexity)]
     fn chase_ball(
         &mut self,
         commands: &mut Commands,
         balls: &mut Query<
             (
                 Entity,
-                &mut Ball,
-                &mut CollisionGroups,
                 &GlobalTransform,
+                &mut Ball,
                 &mut Transform,
+                &mut RigidBody,
+                &mut CollisionGroups,
             ),
             Without<Player>,
         >,
@@ -239,13 +248,19 @@ impl<'a> PlayerUpdate<'a> {
         };
 
         // Check if the player can pick up the ball.
-        let Ok((ball_entity, mut ball, mut ball_groups, ball_global_tfm, mut ball_tfm)) =
-            balls.get_mut(chasing_ball_entity)
+        let Ok((
+            ball_entity,
+            ball_global_tfm,
+            mut ball,
+            mut ball_tfm,
+            mut ball_body,
+            mut ball_groups,
+        )) = balls.get_mut(chasing_ball_entity)
         else {
             return;
         };
 
-        let ball_pos = ball_global_tfm.translation().xy();
+        let ball_pos = ball_global_tfm.translation();
         let dist_to_ball = ball_pos.distance(self.position);
         let can_pickup = dist_to_ball <= PICKUP_RADIUS;
         if can_pickup {
@@ -253,7 +268,7 @@ impl<'a> PlayerUpdate<'a> {
                 // We can't steal the ball.
             } else {
                 // Take the ball (regardless of if we claimed it).
-                ball.pick_up(&mut ball_tfm, &mut ball_groups);
+                ball.pick_up(&mut ball_tfm, &mut ball_body, &mut ball_groups);
                 self.player.holding_ball = true;
                 self.player.throw_cooldown.reset();
                 commands.entity(self.entity).push_children(&[ball_entity]);
@@ -278,16 +293,18 @@ impl<'a> PlayerUpdate<'a> {
         }
     }
 
+    #[allow(clippy::complexity)]
     fn choose_ball_to_chase(
         &mut self,
         rapier_context: &RapierContext,
         balls: &mut Query<
             (
                 Entity,
-                &mut Ball,
-                &mut CollisionGroups,
                 &GlobalTransform,
+                &mut Ball,
                 &mut Transform,
+                &mut RigidBody,
+                &mut CollisionGroups,
             ),
             Without<Player>,
         >,
@@ -422,14 +439,33 @@ impl<'a> PlayerUpdate<'a> {
 #[derive(Resource)]
 pub struct PlayerAssets {
     pub color: Color,
-    pub size: Vec2,
+    pub size: Vec3,
+    pub material: Handle<StandardMaterial>,
+    pub mesh: Handle<Mesh>,
 }
 
 impl PlayerAssets {
-    pub fn new(color: Color) -> Self {
+    pub fn new(
+        color: Color,
+        meshes: &mut Assets<Mesh>,
+        materials: &mut Assets<StandardMaterial>,
+    ) -> Self {
+        let radius = 4.0;
+        let height = 16.0;
+        let size = Vec3::new(2.0 * radius, height, 2.0 * radius);
         Self {
             color,
-            size: Vec2::new(8.0, 16.0),
+            size,
+            mesh: meshes.add(
+                shape::Capsule {
+                    radius,
+                    depth: height,
+                    ..default()
+                }
+                .try_into()
+                .unwrap(),
+            ),
+            material: materials.add(color.into()),
         }
     }
 }

@@ -4,10 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy_rapier2d = "0.23.0"
+bevy_rapier3d = "0.23.0"
 # bevy_rapier2d = { path = "../bevy_rapier/bevy_rapier2d" }
 rand = "0.8.5"
-static_assertions = "1.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

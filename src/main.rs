@@ -11,15 +11,11 @@ mod team;
 use aabb::Aabb2;
 use ball::{Ball, BallAssets};
 use bevy::prelude::*;
-use bevy_rapier2d::prelude::*;
+use bevy_rapier3d::prelude::*;
 use collision::handle_collision_events;
 use player::Player;
-use static_assertions::const_assert;
 use stats::AllStats;
 use team::{Team, TeamAssets};
-
-// Balls are drawn on top of players.
-const_assert!(Player::DEPTH_LAYER < Ball::DEPTH_LAYER);
 
 fn main() {
     App::new()
@@ -31,12 +27,8 @@ fn main() {
                 }),
                 ..default()
             }),
-            RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0),
+            RapierPhysicsPlugin::<NoUserData>::default(),
         ))
-        .insert_resource(RapierConfiguration {
-            gravity: Vec2::ZERO,
-            ..default()
-        })
         .add_systems(Startup, setup)
         .add_systems(
             Update,
@@ -52,11 +44,24 @@ fn main() {
 fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn(Camera3dBundle {
+        transform: Transform::from_xyz(500.0, 500.0, 500.0).looking_at(Vec3::ZERO, Vec3::Y),
+        ..Default::default()
+    });
+    commands.spawn(PointLightBundle {
+        point_light: PointLight {
+            intensity: 500_000.0,
+            range: 5000.,
+            shadows_enabled: true,
+            ..default()
+        },
+        transform: Transform::from_xyz(0.0, 200.0, 0.0),
+        ..default()
+    });
 
-    let team_assets = TeamAssets::default();
+    let team_assets = TeamAssets::new(&mut meshes, &mut materials);
     let ball_assets = BallAssets::new(&mut meshes, &mut materials);
 
     let n_balls = 20;
@@ -64,8 +69,8 @@ fn setup(
         &mut commands,
         &ball_assets,
         n_balls,
-        [-200.0, 0.0].into(),
-        [200.0, 0.0].into(),
+        [-200.0, 0.0, 0.0].into(),
+        [200.0, 0.0, 0.0].into(),
     );
 
     let team0_aabb = Aabb2::new([-200.0, 275.0].into(), [200.0, 325.0].into());

@@ -32,12 +32,12 @@ pub struct TeamAssets {
     pub teams: Vec<PlayerAssets>,
 }
 
-impl Default for TeamAssets {
-    fn default() -> Self {
+impl TeamAssets {
+    pub fn new(meshes: &mut Assets<Mesh>, materials: &mut Assets<StandardMaterial>) -> Self {
         Self {
             teams: vec![
-                PlayerAssets::new(Color::BLUE),
-                PlayerAssets::new(Color::GREEN),
+                PlayerAssets::new(Color::BLUE, meshes, materials),
+                PlayerAssets::new(Color::GREEN, meshes, materials),
             ],
         }
     }

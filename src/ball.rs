@@ -1,9 +1,6 @@
 use crate::collision;
-use bevy::{
-    prelude::*,
-    sprite::{MaterialMesh2dBundle, Mesh2dHandle},
-};
-use bevy_rapier2d::prelude::*;
+use bevy::prelude::*;
+use bevy_rapier3d::prelude::*;
 use std::time::Duration;
 
 #[derive(Component, Default)]
@@ -17,7 +14,7 @@ pub struct Ball {
 // TODO: differentiate (visually) between balls on ground and in air
 
 impl Ball {
-    pub const DEPTH_LAYER: f32 = 100.0;
+    const HELD_OFFSET: Vec3 = Vec3::new(5.0, 0.0, 0.0);
 
     pub fn is_held(&self) -> bool {
         self.is_held
@@ -34,13 +31,14 @@ impl Ball {
         )
     }
 
-    pub fn spawn_on_ground(commands: &mut Commands, ball_assets: &BallAssets, position: Vec2) {
+    pub fn spawn_on_ground(commands: &mut Commands, ball_assets: &BallAssets, mut position: Vec3) {
+        position.y = ball_assets.radius;
         commands.spawn((
             Self::default(),
-            MaterialMesh2dBundle {
+            PbrBundle {
                 mesh: ball_assets.mesh.clone(),
                 material: ball_assets.material.clone(),
-                transform: Transform::from_translation(position.extend(Self::DEPTH_LAYER)),
+                transform: Transform::from_translation(position),
                 ..default()
             },
             RigidBody::KinematicPositionBased,
@@ -53,8 +51,8 @@ impl Ball {
         commands: &mut Commands,
         ball_assets: &BallAssets,
         n_balls: usize,
-        start: Vec2,
-        end: Vec2,
+        start: Vec3,
+        end: Vec3,
     ) {
         let delta = (end - start) / n_balls as f32;
         let mut position = start;
@@ -64,15 +62,18 @@ impl Ball {
         }
     }
 
-    pub fn pick_up(&mut self, transform: &mut Transform, groups: &mut CollisionGroups) {
+    pub fn pick_up(
+        &mut self,
+        transform: &mut Transform,
+        body: &mut RigidBody,
+        groups: &mut CollisionGroups,
+    ) {
         self.clear_claims();
         self.is_held = true;
         // TODO: this is going to cause flickering because the transform will be
         // applied before the player can become the parent
-        transform.translation = Vec3 {
-            z: Self::DEPTH_LAYER,
-            ..default()
-        };
+        transform.translation = Self::HELD_OFFSET;
+        *body = RigidBody::KinematicPositionBased;
         // Don't appear in any collisions or queries until the ball is thrown.
         groups.filters = Group::NONE;
     }
@@ -99,15 +100,15 @@ impl Ball {
     pub fn spawn_thrown(
         commands: &mut Commands,
         ball_assets: &BallAssets,
-        position: Vec2,
-        velocity: Vec2,
+        position: Vec3,
+        velocity: Vec3,
     ) {
         commands.spawn((
             Self::default(),
-            MaterialMesh2dBundle {
+            PbrBundle {
                 mesh: ball_assets.mesh.clone(),
                 material: ball_assets.material.clone(),
-                transform: Transform::from_translation(position.extend(Self::DEPTH_LAYER)),
+                transform: Transform::from_translation(position),
                 ..default()
             },
             RigidBody::Dynamic,
@@ -146,10 +147,9 @@ impl Ball {
             With<Ball>,
         >,
     ) {
-        for (entity, mut cool, mut body, mut groups) in cooling_balls.iter_mut() {
+        for (entity, mut cool, _body, mut groups) in cooling_balls.iter_mut() {
             cool.timer.tick(time.delta());
             if cool.timer.finished() {
-                *body = RigidBody::KinematicPositionBased;
                 *groups = Self::ground_groups();
                 commands
                     .entity(entity)
@@ -162,17 +162,24 @@ impl Ball {
 #[derive(Resource)]
 pub struct BallAssets {
     pub radius: f32,
-    pub mesh: Mesh2dHandle,
-    pub material: Handle<ColorMaterial>,
+    pub mesh: Handle<Mesh>,
+    pub material: Handle<StandardMaterial>,
 }
 
 impl BallAssets {
-    pub fn new(meshes: &mut Assets<Mesh>, materials: &mut Assets<ColorMaterial>) -> Self {
+    pub fn new(meshes: &mut Assets<Mesh>, materials: &mut Assets<StandardMaterial>) -> Self {
         let radius = 4.0;
         Self {
             radius,
-            mesh: meshes.add(shape::Circle::new(radius).into()).into(),
-            material: materials.add(ColorMaterial::from(Color::RED)),
+            mesh: meshes.add(
+                shape::Icosphere {
+                    radius,
+                    subdivisions: 5,
+                }
+                .try_into()
+                .unwrap(),
+            ),
+            material: materials.add(Color::RED.into()),
         }
     }
 }

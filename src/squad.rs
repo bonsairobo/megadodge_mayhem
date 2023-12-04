@@ -20,8 +20,8 @@ impl Squad {
         let mut rng = rand::thread_rng();
         for _ in 0..n_players {
             let x = rng.gen_range(aabb.min.x..aabb.max.x);
-            let y = rng.gen_range(aabb.min.y..aabb.max.y);
-            Player::spawn(commands, assets, team, squad, Vec2::new(x, y));
+            let z = rng.gen_range(aabb.min.y..aabb.max.y);
+            Player::spawn(commands, assets, team, squad, Vec3::new(x, 0.0, z));
         }
     }
 }

@@ -449,15 +449,15 @@ impl PlayerAssets {
         materials: &mut Assets<StandardMaterial>,
     ) -> Self {
         let radius = 4.0;
-        let height = 16.0;
-        let size = Vec3::new(2.0 * radius, height, 2.0 * radius);
+        let depth = 16.0;
+        let size = Vec3::new(2.0 * radius, depth + 2.0 * radius, 2.0 * radius);
         Self {
             color,
             size,
             mesh: meshes.add(
                 shape::Capsule {
                     radius,
-                    depth: height,
+                    depth,
                     ..default()
                 }
                 .try_into()

@@ -1,7 +1,7 @@
 use crate::{aabb::Aabb2, player::PlayerAssets, squad::Squad};
 use bevy::prelude::*;
 
-#[derive(Component)]
+#[derive(Copy, Clone, Component)]
 pub struct Team {
     team: u8,
 }

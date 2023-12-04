@@ -60,7 +60,7 @@ fn setup(
     let team_assets = TeamAssets::default();
     let ball_assets = BallAssets::new(&mut meshes, &mut materials);
 
-    let n_balls = 200;
+    let n_balls = 50;
     Ball::spawn_multiple_in_line(
         &mut commands,
         &ball_assets,
@@ -72,7 +72,7 @@ fn setup(
     let team0_aabb = Aabb2::new([-200.0, 275.0].into(), [200.0, 325.0].into());
     let team1_aabb = Aabb2::new([-200.0, -325.0].into(), [200.0, -275.0].into());
 
-    let team_size = 100;
+    let team_size = 40;
     Team::spawn(
         &mut commands,
         &team_assets.teams[0],

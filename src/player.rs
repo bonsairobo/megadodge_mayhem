@@ -2,8 +2,7 @@ use crate::{
     ball::{Ball, BallAssets},
     collision,
     parameters::{
-        AVOID_FACTOR, AVOID_RADIUS, CHASE_BALL_FACTOR, CLAIM_RADIUS, PICKUP_RADIUS,
-        THROW_START_RADIUS,
+        AVOID_FACTOR, AVOID_RADIUS, CHASE_FACTOR, CLAIM_RADIUS, PICKUP_RADIUS, THROW_START_RADIUS,
     },
     stats::AllStats,
     team::Team,
@@ -125,15 +124,30 @@ impl Player {
                 if let Some((_nearest_player_entity, projection)) =
                     rapier_context.project_point(player_pos, true, select_enemy_players)
                 {
-                    // Despawn the held ball.
-                    commands.entity(player_entity).despawn_descendants();
-                    player.holding_ball = false;
+                    let enemy_pos = projection.point;
 
-                    // Spawn a thrown ball.
-                    let throw_dir = (projection.point - player_pos).normalize();
-                    let throw_velocity = squad_stats.throw_speed * throw_dir;
-                    let throw_start = player_pos + throw_dir * THROW_START_RADIUS;
-                    Ball::spawn_thrown(&mut commands, &ball_assets, throw_start, throw_velocity);
+                    // Check if the enemy is within throwing distance.
+                    let enemy_dist = enemy_pos.distance(player_pos);
+                    if enemy_dist <= squad_stats.throw_distance {
+                        // Despawn the held ball.
+                        commands.entity(player_entity).despawn_descendants();
+                        player.holding_ball = false;
+
+                        // Spawn a thrown ball.
+                        let throw_dir = (projection.point - player_pos).normalize();
+                        let throw_velocity = squad_stats.throw_speed * throw_dir;
+                        let throw_start = player_pos + throw_dir * THROW_START_RADIUS;
+                        Ball::spawn_thrown(
+                            &mut commands,
+                            &ball_assets,
+                            throw_start,
+                            throw_velocity,
+                        );
+                    } else {
+                        // Run towards the enemy.
+                        let run_direction = (enemy_pos - player_pos).normalize();
+                        accum_linvel += CHASE_FACTOR * squad_stats.run_speed * run_direction;
+                    }
                 } else {
                     // No players!
                 }
@@ -199,7 +213,7 @@ impl Player {
                     } else {
                         // We haven't arrived at the ball yet. Just keep running.
                         let run_direction = (ball_pos - player_pos).normalize();
-                        accum_linvel += CHASE_BALL_FACTOR * squad_stats.run_speed * run_direction;
+                        accum_linvel += CHASE_FACTOR * squad_stats.run_speed * run_direction;
 
                         if !player.claimed_ball && dist_to_ball < CLAIM_RADIUS {
                             if ball.claim(player.claimant_group_mask()) {

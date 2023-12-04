@@ -26,7 +26,7 @@ impl Default for PlayerStats {
             dodge_speed: 150.0,
             run_speed: 100.0,
             throw_accuracy: 0.8,
-            throw_distance: 20.0,
+            throw_distance: 50.0,
             throw_speed: 300.0,
             p_block: 0.7,
             p_catch: 0.2,

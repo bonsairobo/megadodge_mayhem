@@ -11,7 +11,7 @@ impl Gym {
         let he = params.half_extents();
         let ht = params.half_thickness();
 
-        // Make 6 cuboids to contain the gym. The floor is opaque and the walls
+        // Make 5 cuboids to contain the gym. The floor is opaque and the walls
         // are transparent.
 
         // To keep the top of the floor at Y=0.0.
@@ -35,44 +35,30 @@ impl Gym {
             ),
         ));
 
-        // min/max X walls
-        let positions = [
-            Vec3::new(-he.x, y_offset, 0.0),
-            Vec3::new(he.x, y_offset, 0.0),
-        ];
-        for position in positions {
-            commands.spawn((
-                PbrBundle {
-                    mesh: assets.x_wall_mesh.clone(),
-                    material: assets.wall_material.clone(),
-                    transform: Transform::from_translation(position),
-                    ..default()
-                },
-                RigidBody::Fixed,
+        let walls = [
+            (
+                Vec3::new(-he.x, y_offset, 0.0),
                 Collider::cuboid(ht, he.y, he.z),
-                CollisionGroups::new(
-                    collision::groups::BOUNDARIES,
-                    collision::groups::PLAYER
-                        | collision::groups::GROUND_BALL
-                        | collision::groups::THROWN_BALL,
-                ),
-            ));
-        }
-        // min/max Z walls
-        let positions = [
-            Vec3::new(0.0, y_offset, -he.z),
-            Vec3::new(0.0, y_offset, he.z),
-        ];
-        for position in positions {
-            commands.spawn((
-                PbrBundle {
-                    mesh: assets.z_wall_mesh.clone(),
-                    material: assets.wall_material.clone(),
-                    transform: Transform::from_translation(position),
-                    ..default()
-                },
-                RigidBody::Fixed,
+            ),
+            (
+                Vec3::new(he.x, y_offset, 0.0),
+                Collider::cuboid(ht, he.y, he.z),
+            ),
+            (
+                Vec3::new(0.0, y_offset, -he.z),
                 Collider::cuboid(he.x, he.y, ht),
+            ),
+            (
+                Vec3::new(0.0, y_offset, he.z),
+                Collider::cuboid(he.x, he.y, ht),
+            ),
+        ];
+        for (position, collider) in walls {
+            commands.spawn((
+                Transform::from_translation(position),
+                GlobalTransform::default(),
+                RigidBody::Fixed,
+                collider,
                 CollisionGroups::new(
                     collision::groups::BOUNDARIES,
                     collision::groups::PLAYER
@@ -114,10 +100,7 @@ impl GymParams {
 pub struct GymAssets {
     pub params: GymParams,
     pub floor_mesh: Handle<Mesh>,
-    pub x_wall_mesh: Handle<Mesh>,
-    pub z_wall_mesh: Handle<Mesh>,
     pub floor_material: Handle<StandardMaterial>,
-    pub wall_material: Handle<StandardMaterial>,
 }
 
 impl GymAssets {
@@ -128,8 +111,6 @@ impl GymAssets {
     ) -> Self {
         let he = params.half_extents();
         let ht = params.half_thickness();
-        // TODO: it's a little silly to use a distinct Box mesh for different
-        // wall sizes, but it's the simplest solution for now
         Self {
             params,
             floor_mesh: meshes.add(
@@ -144,32 +125,7 @@ impl GymAssets {
                 .try_into()
                 .unwrap(),
             ),
-            x_wall_mesh: meshes.add(
-                shape::Box {
-                    min_x: -ht,
-                    max_x: ht,
-                    min_y: -he.y,
-                    max_y: he.y,
-                    min_z: -he.z,
-                    max_z: he.z,
-                }
-                .try_into()
-                .unwrap(),
-            ),
-            z_wall_mesh: meshes.add(
-                shape::Box {
-                    min_x: -he.x,
-                    max_x: he.x,
-                    min_y: -he.y,
-                    max_y: he.y,
-                    min_z: -ht,
-                    max_z: ht,
-                }
-                .try_into()
-                .unwrap(),
-            ),
             floor_material: materials.add(Color::GRAY.into()),
-            wall_material: materials.add(Color::WHITE.with_a(params.wall_alpha).into()),
         }
     }
 }

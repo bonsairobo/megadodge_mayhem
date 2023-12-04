@@ -69,7 +69,10 @@ impl Ball {
         self.is_held = true;
         // TODO: this is going to cause flickering because the transform will be
         // applied before the player can become the parent
-        transform.translation = default();
+        transform.translation = Vec3 {
+            z: Self::DEPTH_LAYER,
+            ..default()
+        };
         // Don't appear in any collisions or queries until the ball is thrown.
         groups.filters = Group::NONE;
     }

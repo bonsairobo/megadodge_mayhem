@@ -177,7 +177,7 @@ struct PlayerUpdate<'a> {
 
 impl<'a> PlayerUpdate<'a> {
     fn set_velocity(&self, velocity: &mut Velocity) {
-        assert!(self.accum_linvel.is_finite());
+        assert!(self.accum_linvel.is_finite(), "{}", self.accum_linvel);
         if self.accum_linvel.length_squared() > 0.0 {
             let speed = if self.player.is_out {
                 self.stats.walk_speed
@@ -187,7 +187,7 @@ impl<'a> PlayerUpdate<'a> {
             velocity.linvel = self.accum_linvel;
             velocity.linvel = speed * velocity.linvel.normalize();
         }
-        assert!(velocity.linvel.is_finite(), "{}", self.accum_linvel);
+        assert!(velocity.linvel.is_finite(), "{}", velocity.linvel);
     }
 
     fn avoid_other_players(

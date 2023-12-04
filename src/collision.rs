@@ -1,6 +1,6 @@
 use crate::{ball::Ball, player::Player};
-use bevy::prelude::{EventReader, Query};
-use bevy_rapier2d::prelude::CollisionEvent;
+use bevy::prelude::*;
+use bevy_rapier2d::prelude::{CollisionEvent, CollisionGroups};
 
 pub mod groups {
     use bevy_rapier2d::prelude::Group;
@@ -13,7 +13,7 @@ pub mod groups {
 
 pub fn handle_collision_events(
     mut events: EventReader<CollisionEvent>,
-    players: Query<&Player>,
+    mut players: Query<(&mut Player, &mut CollisionGroups)>,
     balls: Query<&Ball>,
 ) {
     for event in events.read() {
@@ -26,8 +26,15 @@ pub fn handle_collision_events(
                 continue;
             }
 
+            let Ok((mut player, mut player_groups)) = players.get_mut(player_entity) else {
+                continue;
+            };
+
             // Player got hit by thrown ball. Let's see if they can catch it.
             // println!("player hit");
+
+            // Player failed to catch it, they are out.
+            player.set_out(&mut player_groups);
         }
     }
 }

@@ -59,7 +59,7 @@ fn setup(
     let team_assets = TeamAssets::default();
     let ball_assets = BallAssets::new(&mut meshes, &mut materials);
 
-    let n_balls = 50;
+    let n_balls = 20;
     Ball::spawn_multiple_in_line(
         &mut commands,
         &ball_assets,

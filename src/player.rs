@@ -21,6 +21,7 @@ pub struct Player {
     throw_cooldown: Timer,
     claimed_ball: bool,
     holding_ball: bool,
+    is_out: bool,
     team: u8,
     squad: u8,
 }
@@ -33,15 +34,32 @@ pub struct Player {
 impl Player {
     pub const DEPTH_LAYER: f32 = 0.0;
 
+    fn in_play_groups() -> CollisionGroups {
+        CollisionGroups::new(
+            collision::groups::PLAYER,
+            collision::groups::QUERY | collision::groups::THROWN_BALL,
+        )
+    }
+
+    fn out_of_play_groups() -> CollisionGroups {
+        CollisionGroups::new(collision::groups::PLAYER, collision::groups::THROWN_BALL)
+    }
+
     fn new(team: u8, squad: u8) -> Self {
         Self {
             chasing_ball: None,
             throw_cooldown: Timer::new(Duration::from_millis(THROW_COOLDOWN_MILLIS), default()),
             claimed_ball: false,
             holding_ball: false,
+            is_out: false,
             team,
             squad,
         }
+    }
+
+    pub fn set_out(&mut self, groups: &mut CollisionGroups) {
+        self.is_out = true;
+        *groups = Self::out_of_play_groups();
     }
 
     pub fn spawn(
@@ -66,14 +84,12 @@ impl Player {
             RigidBody::KinematicVelocityBased,
             Velocity::zero(),
             Collider::cuboid(0.5 * assets.size.x, 0.5 * assets.size.y),
-            CollisionGroups::new(
-                collision::groups::PLAYER,
-                collision::groups::QUERY | collision::groups::THROWN_BALL,
-            ),
+            Self::in_play_groups(),
             ColliderMassProperties::Density(1.0),
         ));
     }
 
+    // TODO: try to split this up into multiple systems
     #[allow(clippy::too_many_arguments)]
     pub fn update(
         mut commands: Commands,
@@ -82,7 +98,14 @@ impl Player {
         ball_assets: Res<BallAssets>,
         stats: Res<AllStats>,
         teams: Query<&Team>,
-        mut players: Query<(Entity, &Team, &mut Player, &GlobalTransform, &mut Velocity)>,
+        mut players: Query<(
+            Entity,
+            &Team,
+            &GlobalTransform,
+            &ViewVisibility,
+            &mut Player,
+            &mut Velocity,
+        )>,
         player_transforms: Query<&GlobalTransform, With<Player>>,
         mut balls: Query<
             (
@@ -95,22 +118,42 @@ impl Player {
             Without<Player>,
         >,
     ) {
-        for (player_entity, player_team, mut player, player_global_tfm, mut player_velocity) in
-            players.iter_mut()
+        for (
+            player_entity,
+            player_team,
+            player_global_tfm,
+            view_visibility,
+            mut player,
+            mut player_velocity,
+        ) in players.iter_mut()
         {
+            let is_out = player.is_out;
+
             let mut update = PlayerUpdate {
                 team: *player_team,
                 stats: &stats.squads[player.squad as usize],
                 entity: player_entity,
                 position: player_global_tfm.translation().xy(),
+                view_visibility: *view_visibility,
                 player: &mut player,
                 // Accumulate velocity vector from multiple competing factors.
                 accum_linvel: Vec2::ZERO,
             };
 
-            update.throw_ball_at_enemy(&mut commands, &time, &rapier_context, &ball_assets, &teams);
-            update.choose_ball_to_chase(&rapier_context, &mut balls);
-            update.chase_ball(&mut commands, &mut balls);
+            if is_out {
+                update.walk_out(&mut commands, &ball_assets);
+            } else {
+                update.throw_ball_at_enemy(
+                    &mut commands,
+                    &time,
+                    &rapier_context,
+                    &ball_assets,
+                    &teams,
+                );
+                update.choose_ball_to_chase(&rapier_context, &mut balls);
+                update.chase_ball(&mut commands, &mut balls);
+            }
+
             update.avoid_other_players(&rapier_context, &player_transforms);
             update.set_velocity(&mut player_velocity);
         }
@@ -127,6 +170,7 @@ struct PlayerUpdate<'a> {
     stats: &'a PlayerStats,
     entity: Entity,
     position: Vec2,
+    view_visibility: ViewVisibility,
     player: &'a mut Player,
     accum_linvel: Vec2,
 }
@@ -135,8 +179,13 @@ impl<'a> PlayerUpdate<'a> {
     fn set_velocity(&self, velocity: &mut Velocity) {
         assert!(self.accum_linvel.is_finite());
         if self.accum_linvel.length_squared() > 0.0 {
+            let speed = if self.player.is_out {
+                self.stats.walk_speed
+            } else {
+                self.stats.run_speed
+            };
             velocity.linvel = self.accum_linvel;
-            velocity.linvel = self.stats.run_speed * velocity.linvel.normalize();
+            velocity.linvel = speed * velocity.linvel.normalize();
         }
         assert!(velocity.linvel.is_finite(), "{}", self.accum_linvel);
     }
@@ -348,6 +397,25 @@ impl<'a> PlayerUpdate<'a> {
             let run_direction = (enemy_pos - self.position).normalize();
             self.accum_linvel += CHASE_FACTOR * self.stats.run_speed * run_direction;
         }
+    }
+
+    fn walk_out(&mut self, commands: &mut Commands, ball_assets: &BallAssets) {
+        if self.player.holding_ball {
+            // Drop the ball.
+            Ball::spawn_on_ground(commands, ball_assets, self.position);
+            commands.entity(self.entity).despawn_descendants();
+            self.player.holding_ball = false;
+        }
+
+        // If we're already out of view, despawn.
+        if !*self.view_visibility {
+            commands.entity(self.entity).despawn();
+            return;
+        }
+
+        // Walk away from the origin.
+        let run_direction = self.position.normalize();
+        self.accum_linvel += CHASE_FACTOR * self.stats.walk_speed * run_direction;
     }
 }
 

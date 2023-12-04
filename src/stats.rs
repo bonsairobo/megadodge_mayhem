@@ -10,6 +10,7 @@ pub struct AllStats {
 pub struct PlayerStats {
     pub dodge_speed: f32,
     pub run_speed: f32,
+    pub walk_speed: f32,
     pub throw_accuracy: f32,
     pub throw_distance: f32,
     pub throw_speed: f32,
@@ -25,6 +26,7 @@ impl Default for PlayerStats {
         Self {
             dodge_speed: 150.0,
             run_speed: 100.0,
+            walk_speed: 60.0,
             throw_accuracy: 0.8,
             throw_distance: 50.0,
             throw_speed: 300.0,

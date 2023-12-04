@@ -37,19 +37,19 @@ impl Gym {
 
         let walls = [
             (
-                Vec3::new(-he.x, y_offset, 0.0),
+                Vec3::new(-he.x, he.y + y_offset, 0.0),
                 Collider::cuboid(ht, he.y, he.z),
             ),
             (
-                Vec3::new(he.x, y_offset, 0.0),
+                Vec3::new(he.x, he.y + y_offset, 0.0),
                 Collider::cuboid(ht, he.y, he.z),
             ),
             (
-                Vec3::new(0.0, y_offset, -he.z),
+                Vec3::new(0.0, he.y + y_offset, -he.z),
                 Collider::cuboid(he.x, he.y, ht),
             ),
             (
-                Vec3::new(0.0, y_offset, he.z),
+                Vec3::new(0.0, he.y + y_offset, he.z),
                 Collider::cuboid(he.x, he.y, ht),
             ),
         ];

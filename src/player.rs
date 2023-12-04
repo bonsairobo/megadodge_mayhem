@@ -297,7 +297,7 @@ impl<'a> PlayerUpdate<'a> {
         } else {
             // We haven't arrived at the ball yet. Just keep running.
             let run_direction = (ball_pos - self.position).normalize();
-            self.accum_linvel += CHASE_FACTOR * self.stats.run_speed * run_direction;
+            self.accum_linvel += CHASE_FACTOR * run_direction;
 
             if !self.player.claimed_ball && dist_to_ball < CLAIM_RADIUS {
                 if ball.claim(self.player.claimant_group_mask()) {
@@ -429,7 +429,7 @@ impl<'a> PlayerUpdate<'a> {
         } else {
             // Run towards the enemy.
             let run_direction = (enemy_pos - self.position).normalize();
-            self.accum_linvel += CHASE_FACTOR * self.stats.run_speed * run_direction;
+            self.accum_linvel += CHASE_FACTOR * run_direction;
         }
     }
 
@@ -449,7 +449,7 @@ impl<'a> PlayerUpdate<'a> {
 
         // Walk away from the origin.
         let run_direction = self.position.normalize();
-        self.accum_linvel += CHASE_FACTOR * self.stats.walk_speed * run_direction;
+        self.accum_linvel += CHASE_FACTOR * run_direction;
     }
 }
 

@@ -10,7 +10,6 @@ mod squad;
 mod stats;
 mod team;
 
-use aabb::Aabb2;
 use ball::{Ball, BallAssets};
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
@@ -94,26 +93,25 @@ fn setup(
         &mut commands,
         &ball_assets,
         n_balls,
-        [-9.0, 0.0, 0.0].into(),
-        [9.0, 0.0, 0.0].into(),
+        [-he.x, 0.0, 0.0].into(),
+        [he.x, 0.0, 0.0].into(),
     );
 
-    let team0_aabb = Aabb2::new([-10.0, 15.0 - 1.0].into(), [10.0, 15.0 + 1.0].into());
-    let team1_aabb = Aabb2::new([-10.0, -15.0 - 1.0].into(), [10.0, -15.0 + 1.0].into());
+    let spawn_aabbs = gym_params.spawn_aabbs();
 
     let team_size = 40;
     Team::spawn(
         &mut commands,
         &team_assets.teams[0],
         0,
-        team0_aabb,
+        spawn_aabbs[0],
         team_size,
     );
     Team::spawn(
         &mut commands,
         &team_assets.teams[1],
         1,
-        team1_aabb,
+        spawn_aabbs[1],
         team_size,
     );
 

@@ -1,4 +1,4 @@
-use crate::collision;
+use crate::{aabb::Aabb2, collision};
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::{Collider, CollisionGroups, RigidBody};
 
@@ -98,6 +98,14 @@ impl GymParams {
 
     pub fn half_thickness(&self) -> f32 {
         0.5 * self.thickness
+    }
+
+    pub fn spawn_aabbs(&self) -> [Aabb2; 2] {
+        let he = self.half_extents();
+        [
+            Aabb2::new([-he.x, he.z - 1.0].into(), [he.x, he.z + 1.0].into()),
+            Aabb2::new([-he.x, -he.z - 1.0].into(), [he.x, -he.z + 1.0].into()),
+        ]
     }
 }
 

@@ -1,5 +1,6 @@
 use bevy::prelude::Vec2;
 
+#[derive(Clone, Copy)]
 pub struct Aabb2 {
     pub min: Vec2,
     pub max: Vec2,

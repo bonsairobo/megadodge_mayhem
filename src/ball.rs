@@ -1,4 +1,4 @@
-use crate::{collision, cooldown::Cooldown};
+use crate::collision;
 use bevy::{
     prelude::*,
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
@@ -17,7 +17,7 @@ pub struct Ball {
 // TODO: differentiate (visually) between balls on ground and in air
 
 impl Ball {
-    pub const DEPTH_LAYER: f32 = 2.0;
+    pub const DEPTH_LAYER: f32 = 100.0;
 
     pub fn is_held(&self) -> bool {
         self.is_held
@@ -172,4 +172,9 @@ impl BallAssets {
             material: materials.add(ColorMaterial::from(Color::RED)),
         }
     }
+}
+
+#[derive(Component)]
+pub struct Cooldown {
+    pub timer: Timer,
 }

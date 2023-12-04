@@ -1,7 +1,6 @@
 mod aabb;
 mod ball;
 mod collision;
-mod cooldown;
 mod manager;
 mod parameters;
 mod player;
@@ -18,6 +17,9 @@ use player::Player;
 use static_assertions::const_assert;
 use stats::AllStats;
 use team::{Team, TeamAssets};
+
+// BUG: it seems like the relative depth of players and balls is not
+// deterministic
 
 // Balls are drawn on top of players.
 const_assert!(Player::DEPTH_LAYER < Ball::DEPTH_LAYER);

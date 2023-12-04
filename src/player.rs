@@ -2,7 +2,8 @@ use crate::{
     ball::{Ball, BallAssets},
     collision,
     parameters::{
-        AVOID_FACTOR, AVOID_RADIUS, CHASE_FACTOR, CLAIM_RADIUS, PICKUP_RADIUS, THROW_START_RADIUS,
+        AVOID_FACTOR, AVOID_RADIUS, CHASE_FACTOR, CLAIM_RADIUS, PICKUP_RADIUS,
+        THROW_COOLDOWN_MILLIS, THROW_START_RADIUS,
     },
     stats::{AllStats, PlayerStats},
     team::Team,
@@ -12,10 +13,12 @@ use bevy_rapier2d::prelude::{
     Collider, ColliderMassProperties, CollisionGroups, QueryFilter, RapierContext, RigidBody,
     Velocity,
 };
+use std::time::Duration;
 
 #[derive(Component, Default)]
 pub struct Player {
     chasing_ball: Option<Entity>,
+    throw_cooldown: Timer,
     claimed_ball: bool,
     holding_ball: bool,
     team: u8,
@@ -28,11 +31,12 @@ pub struct Player {
 // queue, since every player doesn't **need** to do queries every frame
 
 impl Player {
-    pub const DEPTH_LAYER: f32 = 1.0;
+    pub const DEPTH_LAYER: f32 = 0.0;
 
     fn new(team: u8, squad: u8) -> Self {
         Self {
             chasing_ball: None,
+            throw_cooldown: Timer::new(Duration::from_millis(THROW_COOLDOWN_MILLIS), default()),
             claimed_ball: false,
             holding_ball: false,
             team,
@@ -73,6 +77,7 @@ impl Player {
     #[allow(clippy::too_many_arguments)]
     pub fn update(
         mut commands: Commands,
+        time: Res<Time>,
         rapier_context: Res<RapierContext>,
         ball_assets: Res<BallAssets>,
         stats: Res<AllStats>,
@@ -103,7 +108,7 @@ impl Player {
                 accum_linvel: Vec2::ZERO,
             };
 
-            update.throw_ball_at_enemy(&mut commands, &rapier_context, &ball_assets, &teams);
+            update.throw_ball_at_enemy(&mut commands, &time, &rapier_context, &ball_assets, &teams);
             update.choose_ball_to_chase(&rapier_context, &mut balls);
             update.chase_ball(&mut commands, &mut balls);
             update.avoid_other_players(&rapier_context, &player_transforms);
@@ -201,6 +206,7 @@ impl<'a> PlayerUpdate<'a> {
                 // Take the ball (regardless of if we claimed it).
                 ball.pick_up(&mut ball_tfm, &mut ball_groups);
                 self.player.holding_ball = true;
+                self.player.throw_cooldown.reset();
                 commands.entity(self.entity).push_children(&[ball_entity]);
 
                 // TODO: regroup with squad
@@ -280,11 +286,17 @@ impl<'a> PlayerUpdate<'a> {
     fn throw_ball_at_enemy(
         &mut self,
         commands: &mut Commands,
+        time: &Time,
         rapier_context: &RapierContext,
         ball_assets: &BallAssets,
         teams: &Query<&Team>,
     ) {
         if !self.player.holding_ball {
+            return;
+        }
+
+        if !self.player.throw_cooldown.finished() {
+            self.player.throw_cooldown.tick(time.delta());
             return;
         }
 

@@ -12,6 +12,7 @@ mod team;
 
 use ball::{Ball, BallAssets};
 use bevy::prelude::*;
+use bevy::render::view::NoFrustumCulling;
 use bevy_rapier3d::prelude::*;
 use boundaries::Boundaries;
 use collision::{handle_ball_floor_collisions, handle_ball_player_collisions};
@@ -39,7 +40,7 @@ fn main() {
             LookTransformPlugin,
             OrbitCameraPlugin::default(),
         ))
-        .add_systems(Startup, setup)
+        .add_systems(Startup, (setup, transparency_hack))
         .add_systems(
             Update,
             (
@@ -134,4 +135,31 @@ fn setup(
     commands.insert_resource(boundaries);
     commands.insert_resource(stats);
     commands.insert_resource(team_assets);
+}
+
+// HACK: front-load a stutter that occurs the first time a transparent material
+// is rendered
+fn transparency_hack(
+    mut commands: Commands,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+) {
+    let transparent_material = materials.add(Color::GRAY.with_a(0.01).into());
+    commands
+        .spawn(PbrBundle {
+            material: transparent_material,
+            // Keep it out of site.
+            transform: Transform::from_xyz(0.0, -f32::INFINITY, 0.0),
+            mesh: meshes.add(
+                shape::Plane {
+                    size: 0.0,
+                    subdivisions: 0,
+                }
+                .try_into()
+                .unwrap(),
+            ),
+            ..default()
+        })
+        // Needs to actually get drawn.
+        .insert(NoFrustumCulling);
 }

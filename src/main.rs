@@ -65,24 +65,34 @@ fn setup(
             Vec3::Y,
         ));
 
-    // TODO: more lights
-    commands.spawn(PointLightBundle {
-        point_light: PointLight {
-            intensity: 1000.0,
-            range: 50.0,
-            shadows_enabled: true,
-            ..default()
-        },
-        transform: Transform::from_xyz(0.0, 5.0, 0.0),
-        ..default()
-    });
-
     let gym_params = GymParams::default();
+    let he = gym_params.half_extents();
+
+    // TODO: animated spotlights could look really cool
+    let hhe = 0.5 * he;
+    let light_positions = [
+        Vec3::new(-hhe.x, 5.0, -hhe.z),
+        Vec3::new(hhe.x, 5.0, -hhe.z),
+        Vec3::new(-hhe.x, 5.0, hhe.z),
+        Vec3::new(hhe.x, 5.0, hhe.z),
+    ];
+    for light_position in light_positions {
+        commands.spawn(PointLightBundle {
+            point_light: PointLight {
+                intensity: 1000.0,
+                range: 50.0,
+                shadows_enabled: true,
+                ..default()
+            },
+            transform: Transform::from_translation(light_position),
+            ..default()
+        });
+    }
+
     let gym_assets = GymAssets::new(gym_params, &mut meshes, &mut materials);
 
     Gym::spawn(&mut commands, &gym_assets);
 
-    let he = gym_params.half_extents();
     let boundaries = Boundaries { min: -he, max: he };
 
     let team_assets = TeamAssets::new(&mut meshes, &mut materials);

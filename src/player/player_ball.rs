@@ -23,7 +23,7 @@ impl PlayerBall {
         mut chasers: Query<(&Team, &GlobalTransform, &mut Self), Without<KnockedOut>>,
         mut balls: Query<&mut Ball>,
     ) {
-        for (team, tfm, mut chase) in &mut chasers {
+        for (team, _tfm, mut chase) in &mut chasers {
             // Always drop our claim before checking for a new ball to chase.
             let old_chasing = chase.chasing_ball.take();
             if chase.claimed_ball {
@@ -34,9 +34,11 @@ impl PlayerBall {
                     }
                 }
             }
+        }
 
+        chasers.par_iter_mut().for_each(|(team, tfm, mut chase)| {
             if chase.holding_ball {
-                continue;
+                return;
             }
 
             let position = tfm.translation();
@@ -59,7 +61,7 @@ impl PlayerBall {
                 .map(|(e, _)| e);
 
             chase.chasing_ball = maybe_nearest_entity;
-        }
+        });
     }
 
     #[allow(clippy::complexity)]

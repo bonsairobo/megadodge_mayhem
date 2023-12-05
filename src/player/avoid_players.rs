@@ -14,7 +14,7 @@ impl AvoidPlayers {
         mut avoiders: Query<(&mut Self, &GlobalTransform), Without<KnockedOut>>,
         player_transforms: Query<&GlobalTransform, (With<Player>, Without<KnockedOut>)>,
     ) {
-        for (mut avoider, tfm) in &mut avoiders {
+        avoiders.par_iter_mut().for_each(|(mut avoider, tfm)| {
             avoider.nearby_players_mass = Vec3::ZERO;
             let position = tfm.translation();
             let select_all_players = QueryFilter::new().groups(CollisionGroups::new(
@@ -41,6 +41,6 @@ impl AvoidPlayers {
             if n_players_nearby > 0 {
                 avoider.nearby_players_mass = sum_nearby_dist / n_players_nearby as f32;
             }
-        }
+        });
     }
 }

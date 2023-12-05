@@ -1,7 +1,7 @@
 use crate::{
     ball::{Ball, Cooldown},
     gym::Floor,
-    player::Player,
+    player::{KnockedOut, Player},
     team::{Team, TeamAssets},
 };
 use bevy::prelude::*;
@@ -17,17 +17,21 @@ pub mod groups {
     pub const BOUNDARIES: Group = Group::GROUP_5;
 }
 
+#[allow(clippy::complexity)]
 pub fn handle_ball_player_collisions(
     mut commands: Commands,
     team_assets: Res<TeamAssets>,
     mut events: EventReader<CollisionEvent>,
-    mut players: Query<(
-        &Team,
-        &mut Player,
-        &mut RigidBody,
-        &mut CollisionGroups,
-        &mut Handle<StandardMaterial>,
-    )>,
+    mut players: Query<
+        (
+            &Team,
+            &mut Player,
+            &mut RigidBody,
+            &mut CollisionGroups,
+            &mut Handle<StandardMaterial>,
+        ),
+        Without<KnockedOut>,
+    >,
     balls: Query<&Ball>,
 ) {
     for event in events.read() {

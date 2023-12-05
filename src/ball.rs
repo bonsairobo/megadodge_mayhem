@@ -1,4 +1,4 @@
-use crate::collision;
+use crate::{boundaries::Boundaries, collision};
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
@@ -26,19 +26,24 @@ impl Ball {
 
     fn thrown_groups() -> CollisionGroups {
         CollisionGroups::new(
-            collision::groups::PLAYER | collision::groups::THROWN_BALL,
+            collision::groups::THROWN_BALL,
             collision::groups::PLAYER | collision::groups::BOUNDARIES,
         )
     }
 
-    pub fn spawn_on_ground(commands: &mut Commands, ball_assets: &BallAssets, mut position: Vec3) {
+    pub fn spawn_on_ground(
+        commands: &mut Commands,
+        ball_assets: &BallAssets,
+        bounds: &Boundaries,
+        mut position: Vec3,
+    ) {
         position.y = ball_assets.radius;
         commands.spawn((
             Self::default(),
             PbrBundle {
                 mesh: ball_assets.mesh.clone(),
                 material: ball_assets.material.clone(),
-                transform: Transform::from_translation(position),
+                transform: Transform::from_translation(position.clamp(bounds.min, bounds.max)),
                 ..default()
             },
             RigidBody::KinematicPositionBased,
@@ -50,6 +55,7 @@ impl Ball {
     pub fn spawn_multiple_in_line(
         commands: &mut Commands,
         ball_assets: &BallAssets,
+        bounds: &Boundaries,
         n_balls: usize,
         start: Vec3,
         end: Vec3,
@@ -57,7 +63,7 @@ impl Ball {
         let delta = (end - start) / n_balls as f32;
         let mut position = start;
         for _ in 0..n_balls {
-            Self::spawn_on_ground(commands, ball_assets, position);
+            Self::spawn_on_ground(commands, ball_assets, bounds, position);
             position += delta;
         }
     }

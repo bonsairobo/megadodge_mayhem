@@ -17,7 +17,7 @@ use bevy_rapier3d::prelude::*;
 use boundaries::Boundaries;
 use collision::{handle_ball_floor_collisions, handle_ball_player_collisions};
 use gym::{Gym, GymAssets, GymParams};
-use player::Player;
+use player::{AvoidPlayers, KnockedOut, Player, PlayerBall, TargetEnemy};
 use smooth_bevy_cameras::controllers::orbit::{
     OrbitCameraBundle, OrbitCameraController, OrbitCameraPlugin,
 };
@@ -40,15 +40,30 @@ fn main() {
             LookTransformPlugin,
             OrbitCameraPlugin::default(),
         ))
+        .insert_resource(ClearColor(Color::rgb(
+            52.0 / 255.0,
+            75.0 / 255.0,
+            99.0 / 255.0,
+        )))
         .add_systems(Startup, (setup, transparency_hack))
+        .add_systems(Update, Player::initialize_kinematics)
         .add_systems(
             Update,
             (
-                Player::update,
+                PlayerBall::choose_ball_to_chase,
+                // TODO: make these one system?
+                PlayerBall::chase_ball.after(PlayerBall::choose_ball_to_chase),
+                AvoidPlayers::avoid_other_players,
+                TargetEnemy::find_target_enemy,
+                Player::throw_ball_at_enemy,
+                KnockedOut::update,
                 handle_ball_player_collisions,
                 handle_ball_floor_collisions,
-            ),
+            )
+                .after(Player::initialize_kinematics)
+                .before(Player::finalize_kinematics),
         )
+        .add_systems(Update, Player::finalize_kinematics)
         .run();
 }
 
@@ -95,7 +110,7 @@ fn setup(
 
     Gym::spawn(&mut commands, &gym_assets);
 
-    let boundaries = Boundaries { min: -he, max: he };
+    let bounds = Boundaries { min: -he, max: he };
 
     let team_assets = TeamAssets::new(&mut meshes, &mut materials);
     let ball_assets = BallAssets::new(&mut meshes, &mut materials);
@@ -104,6 +119,7 @@ fn setup(
     Ball::spawn_multiple_in_line(
         &mut commands,
         &ball_assets,
+        &bounds,
         n_balls,
         [-he.x, 0.0, 0.0].into(),
         [he.x, 0.0, 0.0].into(),
@@ -132,7 +148,7 @@ fn setup(
     };
 
     commands.insert_resource(ball_assets);
-    commands.insert_resource(boundaries);
+    commands.insert_resource(bounds);
     commands.insert_resource(stats);
     commands.insert_resource(team_assets);
 }

@@ -6,7 +6,9 @@ use bevy::prelude::*;
 use rand::Rng;
 
 #[derive(Component)]
-pub struct Squad;
+pub struct Squad {
+    pub squad: u8,
+}
 
 impl Squad {
     pub fn spawn(

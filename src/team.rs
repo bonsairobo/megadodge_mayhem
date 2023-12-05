@@ -25,6 +25,11 @@ impl Team {
         let squad = 0;
         Squad::spawn(commands, assets, team, squad, aabb, n_players);
     }
+
+    pub fn claimant_group_mask(&self) -> u8 {
+        debug_assert!(self.team < 8);
+        1 << self.team
+    }
 }
 
 #[derive(Resource)]

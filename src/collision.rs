@@ -2,7 +2,7 @@ use crate::{
     ball::{Ball, Cooldown},
     gym::Floor,
     player::Player,
-    team::TeamAssets,
+    team::{Team, TeamAssets},
 };
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::{ActiveEvents, Ccd, CollisionEvent, CollisionGroups, RigidBody};
@@ -22,6 +22,7 @@ pub fn handle_ball_player_collisions(
     team_assets: Res<TeamAssets>,
     mut events: EventReader<CollisionEvent>,
     mut players: Query<(
+        &Team,
         &mut Player,
         &mut RigidBody,
         &mut CollisionGroups,
@@ -42,7 +43,7 @@ pub fn handle_ball_player_collisions(
             continue;
         }
 
-        let Ok((mut player, mut player_body, mut player_groups, mut player_material)) =
+        let Ok((player_team, mut player, mut player_body, mut player_groups, mut player_material)) =
             players.get_mut(player_entity)
         else {
             continue;
@@ -56,6 +57,7 @@ pub fn handle_ball_player_collisions(
             &mut commands,
             &team_assets,
             player_entity,
+            player_team,
             &mut player_body,
             &mut player_groups,
             &mut player_material,

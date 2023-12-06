@@ -1,8 +1,12 @@
 use crate::{
     aabb::Aabb2,
-    player::{KnockedOut, Player, PlayerAssets, PlayerBall, PlayerBundle},
+    parameters::{BLOOM_INTENSITY, SQUAD_AI_COLLIDER_HEIGHT, SQUAD_CLUSTER_DENSITY},
+    player::{KnockedOut, Player, PlayerBall, PlayerBundle},
+    team::{AllTeamAssets, Team, TeamAssets},
 };
 use bevy::prelude::*;
+use bevy_mod_picking::prelude::*;
+use bevy_rapier3d::prelude::Collider;
 use rand::Rng;
 
 #[derive(Component)]
@@ -17,7 +21,8 @@ impl Squad {
 
     pub fn spawn(
         commands: &mut Commands,
-        assets: &PlayerAssets,
+        team_assets: &TeamAssets,
+        squad_assets: &SquadAssets,
         team: u8,
         squad: u8,
         aabb: Aabb2,
@@ -25,22 +30,60 @@ impl Squad {
     ) -> Entity {
         assert!(n_players > 0);
 
-        let y = 0.5 * assets.size.y;
+        let y = 0.5 * team_assets.size.y;
 
         let mut rng = rand::thread_rng();
         for _ in 0..n_players {
             let x = rng.gen_range(aabb.min.x..aabb.max.x);
             let z = rng.gen_range(aabb.min.y..aabb.max.y);
-            commands.spawn(PlayerBundle::new(assets, team, squad, Vec3::new(x, y, z)));
+            commands.spawn(PlayerBundle::new(
+                team_assets,
+                squad_assets,
+                team,
+                squad,
+                Vec3::new(x, y, z),
+            ));
         }
 
         let ai_pos = aabb.center();
         commands
             .spawn(SquadAiBundle::new(
+                team,
                 squad,
                 Vec3::new(ai_pos.x, 0.0, ai_pos.y),
             ))
             .id()
+    }
+}
+
+#[derive(Resource)]
+pub struct AllSquadAssets {
+    pub squads: Vec<SquadAssets>,
+}
+
+impl AllSquadAssets {
+    pub fn new(
+        squad_colors: impl IntoIterator<Item = Color>,
+        materials: &mut Assets<StandardMaterial>,
+    ) -> Self {
+        Self {
+            squads: squad_colors
+                .into_iter()
+                .map(|color| SquadAssets::new(color, materials))
+                .collect(),
+        }
+    }
+}
+
+pub struct SquadAssets {
+    pub in_play_material: Handle<StandardMaterial>,
+}
+
+impl SquadAssets {
+    pub fn new(color: Color, materials: &mut Assets<StandardMaterial>) -> Self {
+        Self {
+            in_play_material: materials.add(color.into()),
+        }
     }
 }
 
@@ -55,6 +98,22 @@ impl SquadBehaviors {
             squads: leaders.into_iter().map(SquadBehavior::new).collect(),
         }
     }
+
+    pub fn set_leader_position(
+        event: Listener<Pointer<Click>>,
+        mut behaviors: ResMut<Self>,
+        states: Res<SquadStates>,
+    ) {
+        if event.button != PointerButton::Primary {
+            return;
+        }
+        let (Some(selected_squad), Some(position)) = (states.selected, event.hit.position) else {
+            return;
+        };
+
+        let behavior = &mut behaviors.squads[selected_squad as usize];
+        behavior.leader_position = Some(position.xz());
+    }
 }
 
 pub struct SquadBehavior {
@@ -66,6 +125,8 @@ pub struct SquadBehavior {
     /// A manually configured leader position. If None, leader will decide where
     /// to go.
     pub leader_position: Option<Vec2>,
+    /// Players per square meter.
+    pub cluster_density: f32,
     /// Balls per second.
     pub throw_rate: f32,
     /// Minimum number of balls to throw at a time.
@@ -83,6 +144,7 @@ impl SquadBehavior {
         Self {
             leader,
             leader_position: None,
+            cluster_density: SQUAD_CLUSTER_DENSITY,
             throw_rate: 1.0,
             throw_min_balls: 1,
             throw_y_vel: 4.0,
@@ -126,12 +188,14 @@ impl Default for PlayerStats {
 
 #[derive(Resource)]
 pub struct SquadStates {
+    pub selected: Option<u8>,
     pub squads: Vec<SquadState>,
 }
 
 impl SquadStates {
     pub fn new(squads: impl IntoIterator<Item = u32>) -> Self {
         Self {
+            selected: None,
             squads: squads.into_iter().map(SquadState::new).collect(),
         }
     }
@@ -139,17 +203,45 @@ impl SquadStates {
     #[allow(clippy::complexity)]
     pub fn update(
         mut states: ResMut<Self>,
-        players: Query<(&Squad, &PlayerBall), (With<Player>, Without<KnockedOut>)>,
+        behaviors: Res<SquadBehaviors>,
+        mut squad_ai_colliders: Query<&mut Collider, With<SquadAi>>,
+        squad_ais: Query<(&GlobalTransform), With<SquadAi>>,
+        players: Query<
+            (&Squad, &GlobalTransform, &PlayerBall),
+            (With<Player>, Without<KnockedOut>),
+        >,
     ) {
         for state in &mut states.squads {
             state.clear();
         }
-        for (squad, player_ball) in &players {
+
+        // Squad accounting.
+        for (squad, tfm, player_ball) in &players {
             let state = &mut states.squads[squad.squad as usize];
             state.num_players += 1;
             if player_ball.holding_ball {
                 state.num_holding_balls += 1;
             }
+
+            let behavior = &behaviors.squads[squad.squad as usize];
+            let Ok(leader_tfm) = squad_ais.get(behavior.leader) else {
+                continue;
+            };
+
+            let dist_to_leader = leader_tfm.translation().distance(tfm.translation());
+            if dist_to_leader < state.cluster_radius {
+                state.num_players_in_cluster += 1;
+            }
+        }
+
+        // Update squad AI colliders.
+        for (state, behavior) in states.squads.iter_mut().zip(&behaviors.squads) {
+            state.set_cluster_radius(behavior.cluster_density);
+
+            let Ok(mut collider) = squad_ai_colliders.get_mut(behavior.leader) else {
+                continue;
+            };
+            *collider = Collider::cylinder(SQUAD_AI_COLLIDER_HEIGHT, state.cluster_radius);
         }
     }
 }
@@ -157,6 +249,8 @@ impl SquadStates {
 pub struct SquadState {
     pub num_players: u32,
     pub num_holding_balls: u32,
+    pub num_players_in_cluster: u32,
+    pub cluster_radius: f32,
 }
 
 impl SquadState {
@@ -164,6 +258,8 @@ impl SquadState {
         Self {
             num_players,
             num_holding_balls: 0,
+            num_players_in_cluster: 0,
+            cluster_radius: 0.0,
         }
     }
 
@@ -171,31 +267,145 @@ impl SquadState {
         (100 * self.num_holding_balls) / self.num_players.max(1)
     }
 
+    pub fn cluster_percent(&self) -> u32 {
+        (100 * self.num_players_in_cluster) / self.num_players.max(1)
+    }
+
+    fn set_cluster_radius(&mut self, density: f32) {
+        // density = players / area
+        // area = players / density
+        // radius^2 = (players / density) / PI
+        self.cluster_radius = ((self.num_players as f32 / density) / std::f32::consts::PI).sqrt();
+    }
+
     fn clear(&mut self) {
         self.num_players = 0;
         self.num_holding_balls = 0;
+        self.num_players_in_cluster = 0;
     }
 }
 
 #[derive(Component)]
 pub struct SquadAi;
 
+impl SquadAi {
+    pub fn select_squad(
+        event: Listener<Pointer<Click>>,
+        mut states: ResMut<SquadStates>,
+        all_squad_assets: Res<AllSquadAssets>,
+        mut materials: ResMut<Assets<StandardMaterial>>,
+        squad_ais: Query<&Squad, With<Self>>,
+    ) {
+        if event.button != PointerButton::Primary {
+            return;
+        }
+        let Ok(selected_squad) = squad_ais.get(event.target) else {
+            return;
+        };
+        if let Some(old_selected) = states.selected {
+            if old_selected != selected_squad.squad {
+                let squad_assets = &all_squad_assets.squads[old_selected as usize];
+                if let Some(material) = materials.get_mut(&squad_assets.in_play_material) {
+                    material.emissive = Color::BLACK;
+                }
+            }
+        }
+        states.selected = Some(selected_squad.squad);
+    }
+
+    pub fn highlight_squad(
+        event: Listener<Pointer<Over>>,
+        all_team_assets: Res<AllTeamAssets>,
+        all_squad_assets: Res<AllSquadAssets>,
+        mut materials: ResMut<Assets<StandardMaterial>>,
+        squad_ais: Query<(&Team, &Squad), With<Self>>,
+    ) {
+        let Ok((team, squad)) = squad_ais.get(event.target) else {
+            return;
+        };
+
+        let team_assets = &all_team_assets.teams[team.team() as usize];
+        let squad_assets = &all_squad_assets.squads[squad.squad as usize];
+        let Some(material) = materials.get_mut(&squad_assets.in_play_material) else {
+            return;
+        };
+
+        material.emissive = team_assets.color * BLOOM_INTENSITY;
+    }
+
+    pub fn unhighlight_squad(
+        event: Listener<Pointer<Out>>,
+        states: Res<SquadStates>,
+        all_squad_assets: Res<AllSquadAssets>,
+        mut materials: ResMut<Assets<StandardMaterial>>,
+        squad_ais: Query<&Squad, With<Self>>,
+    ) {
+        let Ok(squad) = squad_ais.get(event.target) else {
+            return;
+        };
+
+        if states.selected == Some(squad.squad) {
+            // Keep the selection highlighted.
+            return;
+        }
+
+        let squad_assets = &all_squad_assets.squads[squad.squad as usize];
+        let Some(material) = materials.get_mut(&squad_assets.in_play_material) else {
+            return;
+        };
+
+        material.emissive = Color::BLACK;
+    }
+
+    pub fn move_to_requested_positions(
+        behaviors: Res<SquadBehaviors>,
+        mut squad_ais: Query<(&Squad, &mut Transform), With<Self>>,
+    ) {
+        for (squad, mut tfm) in &mut squad_ais {
+            let behavior = &behaviors.squads[squad.squad as usize];
+            if let Some(requested_pos) = behavior.leader_position {
+                tfm.translation = Vec3::new(requested_pos.x, 0.0, requested_pos.y);
+            }
+        }
+    }
+}
+
 #[derive(Bundle)]
 pub struct SquadAiBundle {
     pub ai: SquadAi,
+    pub team: Team,
     pub squad: Squad,
     pub transform: TransformBundle,
+    // For selection.
+    pub rapier_pickable: RapierPickable,
+    pub pickable: Pickable,
+    pub collider: Collider,
+    pub on_click: On<Pointer<Click>>,
+    pub on_over: On<Pointer<Over>>,
+    pub on_out: On<Pointer<Out>>,
 }
 
 impl SquadAiBundle {
-    fn new(squad: u8, position: Vec3) -> Self {
+    fn new(team: u8, squad: u8, position: Vec3) -> Self {
         Self {
             ai: SquadAi,
+            team: Team::new(team),
             squad: Squad::new(squad),
             transform: TransformBundle {
                 local: Transform::from_translation(position),
                 ..default()
             },
+            rapier_pickable: RapierPickable,
+            pickable: Pickable {
+                // BUG: not working?
+                should_block_lower: false,
+                should_emit_events: true,
+            },
+            // The radius will update as the squad cluster radius changes.
+            collider: Collider::cylinder(SQUAD_AI_COLLIDER_HEIGHT, 1.0),
+            on_click: On::<Pointer<Click>>::run(SquadAi::select_squad),
+            on_over: On::<Pointer<Over>>::run(SquadAi::highlight_squad),
+            on_out: On::<Pointer<Out>>::run(SquadAi::unhighlight_squad),
         }
     }
 }

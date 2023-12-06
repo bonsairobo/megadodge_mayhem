@@ -2,7 +2,7 @@ use crate::{
     ball::{Ball, Cooldown},
     gym::Floor,
     player::{KnockedOut, Player},
-    team::{Team, TeamAssets},
+    team::{AllTeamAssets, Team},
 };
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::{ActiveEvents, Ccd, CollisionEvent, CollisionGroups, RigidBody};
@@ -20,7 +20,7 @@ pub mod groups {
 #[allow(clippy::complexity)]
 pub fn handle_ball_player_collisions(
     mut commands: Commands,
-    team_assets: Res<TeamAssets>,
+    team_assets: Res<AllTeamAssets>,
     mut events: EventReader<CollisionEvent>,
     mut players: Query<
         (

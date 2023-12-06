@@ -14,8 +14,8 @@ use crate::{
     boundaries::Boundaries,
     collision,
     parameters::{AVOID_FACTOR, CHASE_FACTOR, THROW_COOLDOWN_MILLIS, THROW_START_RADIUS},
-    squad::{Squad, SquadAi, SquadBehaviors, SquadState, SquadStates},
-    team::{Team, TeamAssets},
+    squad::{Squad, SquadAi, SquadAssets, SquadBehaviors, SquadStates},
+    team::{AllTeamAssets, Team, TeamAssets},
 };
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::{
@@ -45,15 +45,21 @@ pub struct PlayerBundle {
 }
 
 impl PlayerBundle {
-    pub fn new(assets: &PlayerAssets, team: u8, squad: u8, position: Vec3) -> Self {
+    pub fn new(
+        team_assets: &TeamAssets,
+        squad_assets: &SquadAssets,
+        team: u8,
+        squad: u8,
+        position: Vec3,
+    ) -> Self {
         Self {
             avoid_players: default(),
             ball: default(),
             body: RigidBody::KinematicVelocityBased,
             collider: Collider::capsule(
-                -0.5 * assets.capsule_length * Vec3::Y,
-                0.5 * assets.capsule_length * Vec3::Y,
-                assets.capsule_radius,
+                -0.5 * team_assets.capsule_length * Vec3::Y,
+                0.5 * team_assets.capsule_length * Vec3::Y,
+                team_assets.capsule_radius,
             ),
             collision_groups: Player::in_play_groups(),
             // Prevents unatural amounts of spinning when hit with a ball.
@@ -61,8 +67,8 @@ impl PlayerBundle {
             mass: ColliderMassProperties::Density(1.0),
             player: Player,
             pbr: PbrBundle {
-                mesh: assets.mesh.clone(),
-                material: assets.in_play_material.clone(),
+                mesh: team_assets.mesh.clone(),
+                material: squad_assets.in_play_material.clone(),
                 transform: Transform::from_translation(position),
                 ..default()
             },
@@ -97,7 +103,7 @@ impl Player {
     pub fn set_out(
         &mut self,
         commands: &mut Commands,
-        assets: &TeamAssets,
+        assets: &AllTeamAssets,
         entity: Entity,
         team: &Team,
         body: &mut RigidBody,
@@ -191,21 +197,20 @@ impl Player {
             };
             let state = &states.squads[squad.squad as usize];
 
-            // PERF: could do this math once per frame and cache it on state
-            // density = players / area
-            // area = players / density
-            // radius^2 = (players / density) / PI
-            let density = 1.0; // players per square meter
-            let cluster_radius =
-                ((state.num_players as f32 / density) / std::f32::consts::PI).sqrt();
-
             let leader_pos = leader_tfm.translation();
             let player_pos = player_tfm.translation();
             let delta = leader_pos - player_pos;
-            let dist = delta.length();
-            let dist_to_cluster = (dist - cluster_radius).max(0.0);
-            let delta_to_cluster = (dist_to_cluster * delta) / dist;
-            velocity.linvel += CHASE_FACTOR * delta_to_cluster;
+            let dist_to_center = delta.length();
+
+            // HACK: Be more agressive about running into the center of the
+            // cluster until most players are inside.
+            let delta_to_cluster = if state.cluster_percent() > 80 {
+                let dist_to_cluster = (dist_to_center - state.cluster_radius).max(0.0);
+                (dist_to_cluster * delta) / dist_to_center
+            } else {
+                delta
+            };
+            velocity.linvel += CHASE_FACTOR * delta_to_cluster.clamp_length_max(0.2);
         }
     }
 
@@ -301,48 +306,6 @@ impl ThrowCooldown {
     fn new() -> Self {
         Self {
             timer: Timer::new(Duration::from_millis(THROW_COOLDOWN_MILLIS), default()),
-        }
-    }
-}
-
-pub struct PlayerAssets {
-    pub color: Color,
-    pub size: Vec3,
-    pub capsule_radius: f32,
-    pub capsule_length: f32,
-    pub in_play_material: Handle<StandardMaterial>,
-    pub out_of_play_material: Handle<StandardMaterial>,
-    pub mesh: Handle<Mesh>,
-}
-
-impl PlayerAssets {
-    pub fn new(
-        color: Color,
-        meshes: &mut Assets<Mesh>,
-        materials: &mut Assets<StandardMaterial>,
-    ) -> Self {
-        // 1.8 meters tall.
-        let height = 1.8;
-        let capsule_radius = 0.18;
-        let diam = 2.0 * capsule_radius;
-        let capsule_length = height - diam;
-        let size = Vec3::new(diam, height, diam);
-        Self {
-            color,
-            size,
-            capsule_radius,
-            capsule_length,
-            mesh: meshes.add(
-                shape::Capsule {
-                    radius: capsule_radius,
-                    depth: capsule_length,
-                    ..default()
-                }
-                .try_into()
-                .unwrap(),
-            ),
-            in_play_material: materials.add(color.into()),
-            out_of_play_material: materials.add(color.with_a(0.2).into()),
         }
     }
 }

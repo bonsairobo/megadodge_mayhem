@@ -36,10 +36,12 @@ pub fn draw_squad_uis(
 
         let state = &squad_states.squads[squad.squad as usize];
         let text = format!(
-            "players: {}\nballs: {}% ({})",
+            "SQUAD {}\nplayers: {}\nballs: {}% ({})\ncluster: {}%",
+            squad.squad,
             state.num_players,
             state.ball_percent(),
-            state.num_holding_balls
+            state.num_holding_balls,
+            state.cluster_percent()
         );
         let alignment = egui::Align2::LEFT_TOP;
         dbg_painter.debug_text(

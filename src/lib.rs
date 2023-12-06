@@ -10,6 +10,7 @@ mod squad_ui;
 mod team;
 
 use ball::{Ball, BallAssets};
+use bevy::core_pipeline::bloom::BloomSettings;
 use bevy::prelude::*;
 use bevy::render::view::NoFrustumCulling;
 use bevy::window::CursorGrabMode;
@@ -25,10 +26,12 @@ use smooth_bevy_cameras::controllers::orbit::{
     OrbitCameraBundle, OrbitCameraController, OrbitCameraPlugin,
 };
 use smooth_bevy_cameras::LookTransformPlugin;
+use squad::AllSquadAssets;
+use squad::SquadAi;
 use squad::SquadStates;
 use squad::{Squad, SquadBehaviors};
 use squad_ui::draw_squad_uis;
-use team::TeamAssets;
+use team::AllTeamAssets;
 
 pub struct GamePlugin;
 
@@ -49,7 +52,11 @@ impl Plugin for GamePlugin {
         .add_systems(Startup, (setup, transparency_hack))
         .add_systems(
             Update,
-            (grab_mouse, draw_squad_uis, print_pointer_click_events),
+            (
+                grab_mouse,
+                draw_squad_uis,
+                SquadAi::move_to_requested_positions,
+            ),
         )
         .add_systems(Update, Player::initialize_kinematics)
         .add_systems(
@@ -95,22 +102,32 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    commands.spawn(Camera3dBundle::default()).insert((
-        OrbitCameraBundle::new(
-            OrbitCameraController {
-                mouse_rotate_sensitivity: Vec2::splat(0.3),
-                mouse_translate_sensitivity: Vec2::splat(4.0),
-                mouse_wheel_zoom_sensitivity: 0.2,
-                pixels_per_line: 53.0,
-                smoothing_weight: 0.8,
+    commands
+        .spawn(Camera3dBundle {
+            camera: Camera {
+                // Required for bloom.
+                hdr: true,
                 ..default()
             },
-            Vec3::new(50.0, 50.0, 0.0),
-            Vec3::ZERO,
-            Vec3::Y,
-        ),
-        RapierPickable,
-    ));
+            ..default()
+        })
+        .insert((
+            BloomSettings::default(),
+            OrbitCameraBundle::new(
+                OrbitCameraController {
+                    mouse_rotate_sensitivity: Vec2::splat(0.3),
+                    mouse_translate_sensitivity: Vec2::splat(4.0),
+                    mouse_wheel_zoom_sensitivity: 0.2,
+                    pixels_per_line: 53.0,
+                    smoothing_weight: 0.8,
+                    ..default()
+                },
+                Vec3::new(50.0, 50.0, 0.0),
+                Vec3::ZERO,
+                Vec3::Y,
+            ),
+            RapierPickable,
+        ));
 
     let gym_params = GymParams::default();
     let he = gym_params.half_extents();
@@ -143,7 +160,15 @@ fn setup(
 
     let bounds = Boundaries { min: -he, max: he };
 
-    let team_assets = TeamAssets::new(&mut meshes, &mut materials);
+    let team_colors = [Color::GREEN, Color::BLUE];
+    let squad_teams = [0, 1];
+    let squad_colors = [
+        team_colors[squad_teams[0] as usize],
+        team_colors[squad_teams[1] as usize],
+    ];
+
+    let team_assets = AllTeamAssets::new(team_colors, &mut meshes, &mut materials);
+    let squad_assets = AllSquadAssets::new(squad_colors, &mut materials);
     let ball_assets = BallAssets::new(&mut meshes, &mut materials);
 
     let n_balls = 100;
@@ -162,7 +187,8 @@ fn setup(
     let squad_ai_0 = Squad::spawn(
         &mut commands,
         &team_assets.teams[0],
-        0,
+        &squad_assets.squads[0],
+        squad_teams[0],
         0,
         spawn_aabbs[0],
         squad_size,
@@ -170,6 +196,7 @@ fn setup(
     let squad_ai_1 = Squad::spawn(
         &mut commands,
         &team_assets.teams[1],
+        &squad_assets.squads[1],
         1,
         1,
         spawn_aabbs[1],
@@ -184,12 +211,7 @@ fn setup(
     commands.insert_resource(squad_behaviors);
     commands.insert_resource(squad_states);
     commands.insert_resource(team_assets);
-}
-
-fn print_pointer_click_events(mut events: EventReader<Pointer<Click>>) {
-    for e in events.read() {
-        println!("{e:#?}");
-    }
+    commands.insert_resource(squad_assets);
 }
 
 // HACK: front-load a stutter that occurs the first time a transparent material

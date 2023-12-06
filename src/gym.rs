@@ -1,6 +1,6 @@
-use crate::{aabb::Aabb2, collision};
+use crate::{aabb::Aabb2, collision, squad::SquadBehaviors};
 use bevy::prelude::*;
-use bevy_mod_picking::prelude::RapierPickable;
+use bevy_mod_picking::prelude::*;
 use bevy_rapier3d::prelude::{Collider, CollisionGroups, RigidBody};
 
 #[derive(Component)]
@@ -31,7 +31,6 @@ impl Gym {
                 transform: Transform::from_translation(Vec3::new(0.0, y_offset, 0.0)),
                 ..default()
             },
-            RapierPickable,
             RigidBody::Fixed,
             Collider::cuboid(he.x, ht, he.z),
             CollisionGroups::new(
@@ -40,6 +39,8 @@ impl Gym {
                     | collision::groups::GROUND_BALL
                     | collision::groups::THROWN_BALL,
             ),
+            RapierPickable,
+            On::<Pointer<Click>>::run(SquadBehaviors::set_leader_position),
         ));
 
         let walls = [

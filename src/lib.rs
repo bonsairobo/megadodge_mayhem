@@ -65,7 +65,8 @@ impl Plugin for GamePlugin {
                 .after(Player::initialize_kinematics)
                 .before(Player::finalize_kinematics),
         )
-        .add_systems(Update, Player::finalize_kinematics);
+        .add_systems(Update, Player::finalize_kinematics)
+        .add_systems(PostUpdate, SquadStates::update);
     }
 }
 

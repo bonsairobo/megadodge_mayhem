@@ -1,6 +1,6 @@
 use crate::{
     aabb::Aabb2,
-    player::{PlayerAssets, PlayerBundle},
+    player::{KnockedOut, Player, PlayerAssets, PlayerBall, PlayerBundle},
 };
 use bevy::prelude::*;
 use rand::Rng;
@@ -135,6 +135,23 @@ impl SquadStates {
             squads: squads.into_iter().map(SquadState::new).collect(),
         }
     }
+
+    #[allow(clippy::complexity)]
+    pub fn update(
+        mut states: ResMut<Self>,
+        players: Query<(&Squad, &PlayerBall), (With<Player>, Without<KnockedOut>)>,
+    ) {
+        for state in &mut states.squads {
+            state.clear();
+        }
+        for (squad, player_ball) in &players {
+            let state = &mut states.squads[squad.squad as usize];
+            state.num_players += 1;
+            if player_ball.holding_ball {
+                state.num_holding_balls += 1;
+            }
+        }
+    }
 }
 
 pub struct SquadState {
@@ -148,6 +165,11 @@ impl SquadState {
             num_players,
             num_holding_balls: 0,
         }
+    }
+
+    fn clear(&mut self) {
+        self.num_players = 0;
+        self.num_holding_balls = 0;
     }
 }
 

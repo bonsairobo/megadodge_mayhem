@@ -126,7 +126,7 @@ impl Default for PlayerStats {
 
 #[derive(Resource)]
 pub struct SquadStates {
-    squads: Vec<SquadState>,
+    pub squads: Vec<SquadState>,
 }
 
 impl SquadStates {
@@ -165,6 +165,10 @@ impl SquadState {
             num_players,
             num_holding_balls: 0,
         }
+    }
+
+    pub fn ball_percent(&self) -> u32 {
+        (100 * self.num_holding_balls) / self.num_players.max(1)
     }
 
     fn clear(&mut self) {

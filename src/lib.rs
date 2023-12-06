@@ -6,12 +6,14 @@ mod gym;
 mod parameters;
 mod player;
 mod squad;
+mod squad_ui;
 mod team;
 
 use ball::{Ball, BallAssets};
 use bevy::prelude::*;
 use bevy::render::view::NoFrustumCulling;
 use bevy::window::CursorGrabMode;
+use bevy_egui::EguiPlugin;
 use bevy_mod_picking::prelude::*;
 use bevy_mod_picking::DefaultPickingPlugins;
 use bevy_rapier3d::prelude::*;
@@ -25,6 +27,7 @@ use smooth_bevy_cameras::controllers::orbit::{
 use smooth_bevy_cameras::LookTransformPlugin;
 use squad::SquadStates;
 use squad::{Squad, SquadBehaviors};
+use squad_ui::draw_squad_uis;
 use team::TeamAssets;
 
 pub struct GamePlugin;
@@ -32,22 +35,22 @@ pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
+            EguiPlugin,
             DefaultPickingPlugins,
             RapierPhysicsPlugin::<NoUserData>::default(),
             // RapierDebugRenderPlugin::default(),
             LookTransformPlugin,
             OrbitCameraPlugin::default(),
         ))
-        .insert_resource(ClearColor(Color::rgb(
-            52.0 / 255.0,
-            75.0 / 255.0,
-            99.0 / 255.0,
-        )))
+        .insert_resource(ClearColor(Color::rgb_u8(52, 75, 99)))
         .insert_resource(RapierBackendSettings {
             require_markers: true,
         })
         .add_systems(Startup, (setup, transparency_hack))
-        .add_systems(Update, (grab_mouse, print_pointer_click_events))
+        .add_systems(
+            Update,
+            (grab_mouse, draw_squad_uis, print_pointer_click_events),
+        )
         .add_systems(Update, Player::initialize_kinematics)
         .add_systems(
             Update,

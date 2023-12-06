@@ -6,7 +6,6 @@ mod gym;
 mod parameters;
 mod player;
 mod squad;
-mod stats;
 mod team;
 
 use ball::{Ball, BallAssets};
@@ -24,8 +23,9 @@ use smooth_bevy_cameras::controllers::orbit::{
     OrbitCameraBundle, OrbitCameraController, OrbitCameraPlugin,
 };
 use smooth_bevy_cameras::LookTransformPlugin;
-use stats::AllStats;
-use team::{Team, TeamAssets};
+use squad::SquadStates;
+use squad::{Squad, SquadBehaviors};
+use team::TeamAssets;
 
 pub struct GamePlugin;
 
@@ -153,29 +153,31 @@ fn setup(
 
     let spawn_aabbs = gym_params.spawn_aabbs();
 
-    let team_size = 160;
-    Team::spawn(
+    let squad_size = 160;
+    let squad_ai_0 = Squad::spawn(
         &mut commands,
         &team_assets.teams[0],
         0,
+        0,
         spawn_aabbs[0],
-        team_size,
+        squad_size,
     );
-    Team::spawn(
+    let squad_ai_1 = Squad::spawn(
         &mut commands,
         &team_assets.teams[1],
         1,
+        1,
         spawn_aabbs[1],
-        team_size,
+        squad_size,
     );
 
-    let stats = AllStats {
-        squads: vec![default(), default()],
-    };
+    let squad_behaviors = SquadBehaviors::new(vec![squad_ai_0, squad_ai_1]);
+    let squad_states = SquadStates::new(vec![squad_size; 2]);
 
     commands.insert_resource(ball_assets);
     commands.insert_resource(bounds);
-    commands.insert_resource(stats);
+    commands.insert_resource(squad_behaviors);
+    commands.insert_resource(squad_states);
     commands.insert_resource(team_assets);
 }
 

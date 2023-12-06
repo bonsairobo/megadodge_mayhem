@@ -14,8 +14,7 @@ use crate::{
     boundaries::Boundaries,
     collision,
     parameters::{AVOID_FACTOR, CHASE_FACTOR, THROW_COOLDOWN_MILLIS, THROW_START_RADIUS},
-    squad::Squad,
-    stats::AllStats,
+    squad::{Squad, SquadBehaviors},
     team::{Team, TeamAssets},
 };
 use bevy::prelude::*;
@@ -26,6 +25,55 @@ use std::time::Duration;
 
 #[derive(Component)]
 pub struct Player;
+
+#[derive(Bundle)]
+pub struct PlayerBundle {
+    pub avoid_players: AvoidPlayers,
+    pub ball: PlayerBall,
+    pub body: RigidBody,
+    pub collider: Collider,
+    pub collision_groups: CollisionGroups,
+    pub locked_axes: LockedAxes,
+    pub mass: ColliderMassProperties,
+    pub pbr: PbrBundle,
+    pub player: Player,
+    pub squad: Squad,
+    pub target_enemy: TargetEnemy,
+    pub team: Team,
+    pub throw_cooldown: ThrowCooldown,
+    pub velocity: Velocity,
+}
+
+impl PlayerBundle {
+    pub fn new(assets: &PlayerAssets, team: u8, squad: u8, position: Vec3) -> Self {
+        Self {
+            avoid_players: default(),
+            ball: default(),
+            body: RigidBody::KinematicVelocityBased,
+            collider: Collider::capsule(
+                -0.5 * assets.capsule_length * Vec3::Y,
+                0.5 * assets.capsule_length * Vec3::Y,
+                assets.capsule_radius,
+            ),
+            collision_groups: Player::in_play_groups(),
+            // Prevents unatural amounts of spinning when hit with a ball.
+            locked_axes: LockedAxes::ROTATION_LOCKED_Y,
+            mass: ColliderMassProperties::Density(1.0),
+            player: Player,
+            pbr: PbrBundle {
+                mesh: assets.mesh.clone(),
+                material: assets.in_play_material.clone(),
+                transform: Transform::from_translation(position),
+                ..default()
+            },
+            squad: Squad::new(squad),
+            target_enemy: default(),
+            team: Team::new(team),
+            throw_cooldown: ThrowCooldown::new(),
+            velocity: Velocity::zero(),
+        }
+    }
+}
 
 // PERF: we could limit how many spatial queries are done each frame with a
 // queue, since every player doesn't **need** to do queries every frame
@@ -66,42 +114,6 @@ impl Player {
             .insert((KnockedOut, DespawnTimer::new()));
     }
 
-    pub fn spawn(
-        commands: &mut Commands,
-        assets: &PlayerAssets,
-        team: u8,
-        squad: u8,
-        mut position: Vec3,
-    ) {
-        position.y = 0.5 * assets.size.y;
-        commands.spawn((
-            Self,
-            Team::new(team),
-            Squad { squad },
-            ThrowCooldown::new(),
-            PlayerBall::default(),
-            TargetEnemy::default(),
-            AvoidPlayers::default(),
-            PbrBundle {
-                mesh: assets.mesh.clone(),
-                material: assets.in_play_material.clone(),
-                transform: Transform::from_translation(position),
-                ..default()
-            },
-            RigidBody::KinematicVelocityBased,
-            Velocity::zero(),
-            Collider::capsule(
-                -0.5 * assets.capsule_length * Vec3::Y,
-                0.5 * assets.capsule_length * Vec3::Y,
-                assets.capsule_radius,
-            ),
-            Self::in_play_groups(),
-            ColliderMassProperties::Density(1.0),
-            // Prevents unatural amounts of spinning when hit with a ball.
-            LockedAxes::ROTATION_LOCKED_Y,
-        ));
-    }
-
     #[allow(clippy::complexity)]
     pub fn initialize_kinematics(
         boundaries: Res<Boundaries>,
@@ -116,7 +128,7 @@ impl Player {
 
     #[allow(clippy::complexity)]
     pub fn finalize_kinematics(
-        stats: Res<AllStats>,
+        behaviors: Res<SquadBehaviors>,
         mut players: Query<
             (
                 &Squad,
@@ -129,7 +141,7 @@ impl Player {
         >,
     ) {
         for (squad, ball, target_enemy, avoid_players, mut velocity) in &mut players {
-            let stats = &stats.squads[squad.squad as usize];
+            let stats = &behaviors.squads[squad.squad as usize].stats;
 
             let mut accum_linvel = Vec3::ZERO;
             if ball.chasing_ball.is_some() {
@@ -157,7 +169,7 @@ impl Player {
         mut commands: Commands,
         time: Res<Time>,
         ball_assets: Res<BallAssets>,
-        stats: Res<AllStats>,
+        stats: Res<SquadBehaviors>,
         mut players: Query<
             (
                 Entity,
@@ -211,7 +223,7 @@ impl Player {
             let player_pos = player_tfm.translation();
             let enemy_pos = enemy_tfm.translation();
 
-            let stats = &stats.squads[player_squad.squad as usize];
+            let stats = &stats.squads[player_squad.squad as usize].stats;
 
             let enemy_direction = (enemy_pos - player_pos).normalize();
 

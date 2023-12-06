@@ -1,4 +1,4 @@
-use crate::{aabb::Aabb2, player::PlayerAssets, squad::Squad};
+use crate::player::PlayerAssets;
 use bevy::prelude::*;
 
 #[derive(Copy, Clone, Component)]
@@ -13,17 +13,6 @@ impl Team {
 
     pub fn team(&self) -> u8 {
         self.team
-    }
-
-    pub fn spawn(
-        commands: &mut Commands,
-        assets: &PlayerAssets,
-        team: u8,
-        aabb: Aabb2,
-        n_players: usize,
-    ) {
-        let squad = 0;
-        Squad::spawn(commands, assets, team, squad, aabb, n_players);
     }
 
     pub fn claimant_group_mask(&self) -> u8 {

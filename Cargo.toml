@@ -1,16 +1,64 @@
 [package]
 name = "megadodge_mayhem"
 version = "0.1.0"
+publish = false
+authors = ["Duncan Fairbanks <duncanfairbanks6@gmail.com>"]
 edition = "2021"
-
-[dependencies]
-bevy_rapier3d = { version = "0.23.0", features = ["simd-stable"] }
-rand = "0.8.5"
-smooth-bevy-cameras = "0.10.0"
+exclude = ["assets", "build", "credits", "dist"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[workspace]
+members = []
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.dev]
+opt-level = 1
+
+[profile.release]
+lto = true
+codegen-units = 1
+
+# The profile that 'cargo dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
+
+[features]
+dev = [
+    "bevy/dynamic_linking",
+]
+
+[dependencies]
+rand = "0.8.5"
+smooth-bevy-cameras = "0.10.0"
+webbrowser = { version = "0.8", features = ["hardened"] }
+
+# keep the following in sync with Bevy's dependencies
+winit = { version = "0.28.7", default-features = false }
+image = { version = "0.24", default-features = false }
+
 [dependencies.bevy]
 version = "0.12.0"
-# default-features = false
-features = ["bevy_text", "bevy_ui", "bevy_winit", "webgl2"]
+default-features = false
+features = [
+  "bevy_core_pipeline",
+  "bevy_pbr",
+  "bevy_render",
+  "bevy_winit",
+  "hdr",
+  "multi-threaded",
+  "tonemapping_luts",
+  "webgl2",
+  "x11",
+]
+
+[dependencies.bevy_rapier3d]
+version = "0.23.0"
+default-features = false
+features = ["dim3", "simd-stable"]
+
+[build-dependencies]
+embed-resource = "1.4"

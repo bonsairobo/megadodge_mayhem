@@ -3,7 +3,6 @@ mod ball;
 mod boundaries;
 mod collision;
 mod gym;
-mod manager;
 mod parameters;
 mod player;
 mod squad;

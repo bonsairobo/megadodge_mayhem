@@ -55,6 +55,11 @@ features = [
   "x11",
 ]
 
+[dependencies.bevy_mod_picking]
+version = "0.17.0"
+default-features = false
+features = ["backend_rapier"]
+
 [dependencies.bevy_rapier3d]
 version = "0.23.0"
 default-features = false

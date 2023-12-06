@@ -12,6 +12,8 @@ mod team;
 use ball::{Ball, BallAssets};
 use bevy::prelude::*;
 use bevy::render::view::NoFrustumCulling;
+use bevy_mod_picking::prelude::*;
+use bevy_mod_picking::DefaultPickingPlugins;
 use bevy_rapier3d::prelude::*;
 use boundaries::Boundaries;
 use collision::{handle_ball_floor_collisions, handle_ball_player_collisions};
@@ -29,6 +31,7 @@ pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
+            DefaultPickingPlugins,
             RapierPhysicsPlugin::<NoUserData>::default(),
             // RapierDebugRenderPlugin::default(),
             LookTransformPlugin,
@@ -39,7 +42,11 @@ impl Plugin for GamePlugin {
             75.0 / 255.0,
             99.0 / 255.0,
         )))
+        .insert_resource(RapierBackendSettings {
+            require_markers: true,
+        })
         .add_systems(Startup, (setup, transparency_hack))
+        .add_systems(Update, print_pointer_click_events)
         .add_systems(Update, Player::initialize_kinematics)
         .add_systems(
             Update,
@@ -66,14 +73,15 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    commands
-        .spawn(Camera3dBundle::default())
-        .insert(OrbitCameraBundle::new(
+    commands.spawn(Camera3dBundle::default()).insert((
+        OrbitCameraBundle::new(
             OrbitCameraController::default(),
             Vec3::new(50.0, 50.0, 0.0),
             Vec3::ZERO,
             Vec3::Y,
-        ));
+        ),
+        RapierPickable,
+    ));
 
     let gym_params = GymParams::default();
     let he = gym_params.half_extents();
@@ -145,6 +153,12 @@ fn setup(
     commands.insert_resource(bounds);
     commands.insert_resource(stats);
     commands.insert_resource(team_assets);
+}
+
+fn print_pointer_click_events(mut events: EventReader<Pointer<Click>>) {
+    for e in events.read() {
+        println!("{e:#?}");
+    }
 }
 
 // HACK: front-load a stutter that occurs the first time a transparent material

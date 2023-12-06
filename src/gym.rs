@@ -1,5 +1,6 @@
 use crate::{aabb::Aabb2, collision};
 use bevy::prelude::*;
+use bevy_mod_picking::prelude::RapierPickable;
 use bevy_rapier3d::prelude::{Collider, CollisionGroups, RigidBody};
 
 #[derive(Component)]
@@ -30,6 +31,7 @@ impl Gym {
                 transform: Transform::from_translation(Vec3::new(0.0, y_offset, 0.0)),
                 ..default()
             },
+            RapierPickable,
             RigidBody::Fixed,
             Collider::cuboid(he.x, ht, he.z),
             CollisionGroups::new(

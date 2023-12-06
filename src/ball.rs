@@ -27,7 +27,9 @@ impl Ball {
     fn thrown_groups() -> CollisionGroups {
         CollisionGroups::new(
             collision::groups::THROWN_BALL,
-            collision::groups::PLAYER | collision::groups::BOUNDARIES,
+            collision::groups::THROWN_BALL
+                | collision::groups::PLAYER
+                | collision::groups::BOUNDARIES,
         )
     }
 

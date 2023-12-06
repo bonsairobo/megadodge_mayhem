@@ -12,6 +12,7 @@ mod team;
 use ball::{Ball, BallAssets};
 use bevy::prelude::*;
 use bevy::render::view::NoFrustumCulling;
+use bevy::window::CursorGrabMode;
 use bevy_mod_picking::prelude::*;
 use bevy_mod_picking::DefaultPickingPlugins;
 use bevy_rapier3d::prelude::*;
@@ -46,7 +47,7 @@ impl Plugin for GamePlugin {
             require_markers: true,
         })
         .add_systems(Startup, (setup, transparency_hack))
-        .add_systems(Update, print_pointer_click_events)
+        .add_systems(Update, (grab_mouse, print_pointer_click_events))
         .add_systems(Update, Player::initialize_kinematics)
         .add_systems(
             Update,
@@ -68,6 +69,22 @@ impl Plugin for GamePlugin {
     }
 }
 
+fn grab_mouse(
+    mut windows: Query<&mut Window>,
+    mouse: Res<Input<MouseButton>>,
+    key: Res<Input<KeyCode>>,
+) {
+    let mut window = windows.single_mut();
+
+    if mouse.just_pressed(MouseButton::Left) {
+        window.cursor.grab_mode = CursorGrabMode::Locked;
+    }
+
+    if key.just_pressed(KeyCode::Escape) {
+        window.cursor.grab_mode = CursorGrabMode::None;
+    }
+}
+
 fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -75,7 +92,14 @@ fn setup(
 ) {
     commands.spawn(Camera3dBundle::default()).insert((
         OrbitCameraBundle::new(
-            OrbitCameraController::default(),
+            OrbitCameraController {
+                mouse_rotate_sensitivity: Vec2::splat(0.3),
+                mouse_translate_sensitivity: Vec2::splat(2.0),
+                mouse_wheel_zoom_sensitivity: 0.2,
+                pixels_per_line: 53.0,
+                smoothing_weight: 0.8,
+                ..default()
+            },
             Vec3::new(50.0, 50.0, 0.0),
             Vec3::ZERO,
             Vec3::Y,

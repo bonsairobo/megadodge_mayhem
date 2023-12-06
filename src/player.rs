@@ -14,7 +14,7 @@ use crate::{
     boundaries::Boundaries,
     collision,
     parameters::{AVOID_FACTOR, CHASE_FACTOR, THROW_COOLDOWN_MILLIS, THROW_START_RADIUS},
-    squad::{Squad, SquadBehaviors},
+    squad::{Squad, SquadAi, SquadBehaviors, SquadState, SquadStates},
     team::{Team, TeamAssets},
 };
 use bevy::prelude::*;
@@ -117,9 +117,19 @@ impl Player {
     #[allow(clippy::complexity)]
     pub fn initialize_kinematics(
         boundaries: Res<Boundaries>,
-        mut players: Query<(&GlobalTransform, &mut Transform), (With<Player>, Without<KnockedOut>)>,
+        mut players: Query<
+            (&GlobalTransform, &mut Transform, &mut Velocity),
+            (With<Player>, Without<KnockedOut>),
+        >,
     ) {
-        for (global_tfm, mut tfm) in &mut players {
+        for (global_tfm, mut tfm, mut velocity) in &mut players {
+            // This gets accumulated from multiple sources over the frame.
+            //
+            // Systems that are cheap to run will write directly to the
+            // velocity, while more expensive systems will write to a buffer to
+            // allow for parallelism.
+            velocity.linvel = Vec3::ZERO;
+
             let mut position = global_tfm.translation();
             position = position.clamp(boundaries.min, boundaries.max);
             tfm.translation = position;
@@ -143,7 +153,7 @@ impl Player {
         for (squad, ball, target_enemy, avoid_players, mut velocity) in &mut players {
             let stats = &behaviors.squads[squad.squad as usize].stats;
 
-            let mut accum_linvel = Vec3::ZERO;
+            let mut accum_linvel = velocity.linvel;
             if ball.chasing_ball.is_some() {
                 accum_linvel += CHASE_FACTOR * ball.chase_vector;
             }
@@ -161,6 +171,41 @@ impl Player {
                 velocity.linvel = stats.run_speed * accum_linvel.normalize();
             }
             assert!(velocity.linvel.is_finite(), "{}", velocity.linvel);
+        }
+    }
+
+    #[allow(clippy::complexity)]
+    pub fn follow_leader(
+        behaviors: Res<SquadBehaviors>,
+        states: Res<SquadStates>,
+        mut players: Query<
+            (&Squad, &GlobalTransform, &mut Velocity),
+            (With<Player>, Without<KnockedOut>),
+        >,
+        leader_transforms: Query<&GlobalTransform, With<SquadAi>>,
+    ) {
+        for (squad, player_tfm, mut velocity) in &mut players {
+            let behavior = &behaviors.squads[squad.squad as usize];
+            let Ok(leader_tfm) = leader_transforms.get(behavior.leader) else {
+                continue;
+            };
+            let state = &states.squads[squad.squad as usize];
+
+            // PERF: could do this math once per frame and cache it on state
+            // density = players / area
+            // area = players / density
+            // radius^2 = (players / density) / PI
+            let density = 1.0; // players per square meter
+            let cluster_radius =
+                ((state.num_players as f32 / density) / std::f32::consts::PI).sqrt();
+
+            let leader_pos = leader_tfm.translation();
+            let player_pos = player_tfm.translation();
+            let delta = leader_pos - player_pos;
+            let dist = delta.length();
+            let dist_to_cluster = (dist - cluster_radius).max(0.0);
+            let delta_to_cluster = (dist_to_cluster * delta) / dist;
+            velocity.linvel += CHASE_FACTOR * delta_to_cluster;
         }
     }
 

@@ -55,12 +55,13 @@ impl Plugin for GamePlugin {
         .add_systems(
             Update,
             (
-                PlayerBall::choose_ball_to_chase,
+                // PlayerBall::choose_ball_to_chase,
                 // TODO: make these one system?
-                PlayerBall::chase_ball.after(PlayerBall::choose_ball_to_chase),
+                // PlayerBall::chase_ball.after(PlayerBall::choose_ball_to_chase),
                 AvoidPlayers::avoid_other_players,
-                TargetEnemy::find_target_enemy,
-                Player::throw_ball_at_enemy,
+                // TargetEnemy::find_target_enemy,
+                // Player::throw_ball_at_enemy,
+                Player::follow_leader,
                 KnockedOut::update,
                 handle_ball_player_collisions,
                 handle_ball_floor_collisions,
@@ -98,7 +99,7 @@ fn setup(
         OrbitCameraBundle::new(
             OrbitCameraController {
                 mouse_rotate_sensitivity: Vec2::splat(0.3),
-                mouse_translate_sensitivity: Vec2::splat(2.0),
+                mouse_translate_sensitivity: Vec2::splat(4.0),
                 mouse_wheel_zoom_sensitivity: 0.2,
                 pixels_per_line: 53.0,
                 smoothing_weight: 0.8,

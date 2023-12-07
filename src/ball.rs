@@ -133,8 +133,8 @@ impl Ball {
             Velocity::linear(velocity),
             Damping {
                 // Balls should come to rest eventually.
-                linear_damping: 0.05,
-                ..default()
+                linear_damping: 0.1,
+                angular_damping: 0.1,
             },
             Restitution {
                 // Bouncy

@@ -21,16 +21,20 @@ impl Ball {
     pub fn ground_groups() -> CollisionGroups {
         CollisionGroups::new(
             collision::groups::GROUND_BALL,
-            collision::groups::QUERY | collision::groups::BOUNDARIES,
+            collision::groups::QUERY
+                | collision::groups::BOUNDARIES
+                | collision::groups::GROUND_BALL
+                | collision::groups::THROWN_BALL,
         )
     }
 
     fn thrown_groups() -> CollisionGroups {
         CollisionGroups::new(
             collision::groups::THROWN_BALL,
-            collision::groups::THROWN_BALL
-                | collision::groups::PLAYER
-                | collision::groups::BOUNDARIES,
+            collision::groups::PLAYER
+                | collision::groups::BOUNDARIES
+                | collision::groups::GROUND_BALL
+                | collision::groups::THROWN_BALL,
         )
     }
 

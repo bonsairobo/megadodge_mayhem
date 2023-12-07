@@ -1,11 +1,9 @@
 mod avoid_players;
 mod knocked_out;
-mod player_ball;
 mod target_enemy;
 
 pub use self::avoid_players::AvoidPlayers;
 pub use self::knocked_out::KnockedOut;
-pub use self::player_ball::PlayerBall;
 pub use self::target_enemy::TargetEnemy;
 
 use self::knocked_out::DespawnTimer;
@@ -45,6 +43,14 @@ pub struct PlayerBundle {
     pub team: Team,
     pub throw_cooldown: ThrowCooldown,
     pub velocity: Velocity,
+}
+
+#[derive(Component, Default)]
+pub struct PlayerBall {
+    pub target_ball: Option<Entity>,
+    pub chase_vector: Vec3,
+    pub claimed_ball: bool,
+    pub holding_ball: bool,
 }
 
 impl PlayerBundle {
@@ -91,7 +97,9 @@ impl Player {
     fn in_play_groups() -> CollisionGroups {
         CollisionGroups::new(
             collision::groups::PLAYER,
-            collision::groups::QUERY | collision::groups::THROWN_BALL,
+            collision::groups::QUERY
+                | collision::groups::THROWN_BALL
+                | collision::groups::GROUND_BALL,
         )
     }
 
@@ -335,7 +343,7 @@ impl Player {
 
 #[derive(Component)]
 pub struct ThrowCooldown {
-    timer: Timer,
+    pub timer: Timer,
 }
 
 impl ThrowCooldown {

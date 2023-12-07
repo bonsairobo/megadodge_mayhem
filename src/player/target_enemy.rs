@@ -40,9 +40,6 @@ impl TargetEnemy {
                     ))
                     .predicate(&entity_on_enemy_team);
 
-                // TODO: maybe use claimant bits for this too? It's not
-                // necessarily bad for two players to aim at the same target.
-
                 // Identify the closest target.
                 if let Some((nearest_player_entity, _projection)) =
                     rapier_context.project_point(player_position, true, select_enemy_players)

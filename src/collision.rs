@@ -1,11 +1,11 @@
 use crate::{
-    ball::{Ball, Cooldown},
+    ball::Ball,
     gym::Floor,
-    player::{KnockedOut, Player},
+    player::{KnockedOut, Player, PlayerBall, ThrowCooldown},
     team::{AllTeamAssets, Team},
 };
 use bevy::prelude::*;
-use bevy_rapier3d::prelude::{ActiveEvents, Ccd, CollisionEvent, CollisionGroups, RigidBody};
+use bevy_rapier3d::prelude::{Ccd, CollisionEvent, CollisionGroups, RigidBody};
 
 pub mod groups {
     use bevy_rapier3d::prelude::Group;
@@ -26,13 +26,23 @@ pub fn handle_ball_player_collisions(
         (
             &Team,
             &mut Player,
+            &mut PlayerBall,
+            &mut ThrowCooldown,
             &mut RigidBody,
             &mut CollisionGroups,
             &mut Handle<StandardMaterial>,
         ),
         Without<KnockedOut>,
     >,
-    balls: Query<&Ball>,
+    mut balls: Query<
+        (
+            &mut Ball,
+            &mut Transform,
+            &mut RigidBody,
+            &mut CollisionGroups,
+        ),
+        Without<Player>,
+    >,
 ) {
     for event in events.read() {
         let &CollisionEvent::Started(mut player_entity, mut ball_entity, _flags) = event else {
@@ -47,32 +57,57 @@ pub fn handle_ball_player_collisions(
             continue;
         }
 
-        let Ok((player_team, mut player, mut player_body, mut player_groups, mut player_material)) =
-            players.get_mut(player_entity)
+        let Ok((mut ball, mut ball_tfm, mut ball_body, mut ball_groups)) =
+            balls.get_mut(ball_entity)
+        else {
+            continue;
+        };
+        let Ok((
+            player_team,
+            mut player,
+            mut player_ball,
+            mut throw_cooldown,
+            mut player_body,
+            mut player_groups,
+            mut player_material,
+        )) = players.get_mut(player_entity)
         else {
             continue;
         };
 
-        // Player got hit by thrown ball. Let's see if they can catch it.
-        // println!("player hit");
+        if ball.is_dangerous() {
+            // Player got hit by thrown ball. Let's see if they can catch it.
+            // println!("player hit");
 
-        // Player failed to catch it, they are out.
-        player.set_out(
-            &mut commands,
-            &team_assets,
-            player_entity,
-            player_team,
-            &mut player_body,
-            &mut player_groups,
-            &mut player_material,
-        );
+            // Player failed to catch it, they are out.
+            player.set_out(
+                &mut commands,
+                &team_assets,
+                player_entity,
+                player_team,
+                &mut player_body,
+                &mut player_groups,
+                &mut player_material,
+            );
+        } else {
+            // Maybe player should pick up this ball.
+            if ball.is_held() || player_ball.holding_ball {
+                // We can't steal the ball or hold multiple.
+            } else {
+                // Take the ball.
+                ball.pick_up(&mut ball_tfm, &mut ball_body, &mut ball_groups);
+                player_ball.holding_ball = true;
+                throw_cooldown.timer.reset();
+                commands.entity(player_entity).add_child(ball_entity);
+            }
+        }
     }
 }
 
 pub fn handle_ball_floor_collisions(
     mut commands: Commands,
     mut events: EventReader<CollisionEvent>,
-    mut balls: Query<&mut CollisionGroups, With<Ball>>,
+    mut balls: Query<(&mut Ball, &mut CollisionGroups)>,
     floor: Query<Entity, With<Floor>>,
 ) {
     let Ok(floor_entity) = floor.get_single() else {
@@ -95,13 +130,12 @@ pub fn handle_ball_floor_collisions(
             continue;
         }
 
-        let Ok(mut ball_groups) = balls.get_mut(ball_entity) else {
+        let Ok((mut ball, mut ball_groups)) = balls.get_mut(ball_entity) else {
             continue;
         };
 
+        ball.on_touch_ground();
         *ball_groups = Ball::ground_groups();
-        commands
-            .entity(ball_entity)
-            .remove::<(ActiveEvents, Cooldown, Ccd)>();
+        commands.entity(ball_entity).remove::<Ccd>();
     }
 }

@@ -13,11 +13,6 @@ impl Team {
     pub fn team(&self) -> u8 {
         self.team
     }
-
-    pub fn claimant_group_mask(&self) -> u8 {
-        debug_assert!(self.team < 8);
-        1 << self.team
-    }
 }
 
 #[derive(Resource)]

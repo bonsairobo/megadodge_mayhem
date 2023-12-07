@@ -9,6 +9,9 @@ pub struct AvoidPlayers {
 }
 
 impl AvoidPlayers {
+    // PERF: this shows up in traces as being a bit expensive. Not sure how to
+    // improve it though without making players RigidBody::Dynamic, which might
+    // have bad side effects.
     pub fn avoid_other_players(
         rapier_context: Res<RapierContext>,
         mut avoiders: Query<(&mut Self, &GlobalTransform), Without<KnockedOut>>,

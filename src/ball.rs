@@ -5,10 +5,9 @@ use rand::Rng;
 
 #[derive(Component, Default)]
 pub struct Ball {
-    /// When a group's bit is set, then some player has already claimed this
-    /// ball.
-    claims_mask: u8,
     is_held: bool,
+    /// Will knock a player out if hit.
+    dangerous: bool,
 }
 
 impl Ball {
@@ -18,13 +17,17 @@ impl Ball {
         self.is_held
     }
 
+    pub fn is_dangerous(&self) -> bool {
+        self.dangerous
+    }
+
     pub fn ground_groups() -> CollisionGroups {
         CollisionGroups::new(
             collision::groups::GROUND_BALL,
             collision::groups::QUERY
+                | collision::groups::PLAYER
                 | collision::groups::BOUNDARIES
-                | collision::groups::GROUND_BALL
-                | collision::groups::THROWN_BALL,
+                | collision::groups::GROUND_BALL,
         )
     }
 
@@ -65,6 +68,8 @@ impl Ball {
             RigidBody::KinematicPositionBased,
             Collider::ball(ball_assets.radius),
             Self::ground_groups(),
+            ActiveEvents::COLLISION_EVENTS,
+            ActiveCollisionTypes::default() | ActiveCollisionTypes::KINEMATIC_KINEMATIC,
         ));
     }
 
@@ -89,7 +94,6 @@ impl Ball {
         body: &mut RigidBody,
         groups: &mut CollisionGroups,
     ) {
-        self.clear_claims();
         self.is_held = true;
         // TODO: this is going to cause flickering because the transform will be
         // applied before the player can become the parent
@@ -99,25 +103,6 @@ impl Ball {
         groups.filters = Group::NONE;
     }
 
-    /// Returns `true` if the claim was successful.
-    // pub fn claim(&mut self, mask: u8) -> bool {
-    //     let already_claimed = self.is_claimed(mask);
-    //     self.claims_mask |= mask;
-    //     !already_claimed
-    // }
-
-    pub fn drop_claim(&mut self, mask: u8) {
-        self.claims_mask &= !mask;
-    }
-
-    pub fn is_claimed(&self, mask: u8) -> bool {
-        (self.claims_mask & mask) != 0
-    }
-
-    pub fn clear_claims(&mut self) {
-        self.claims_mask = 0;
-    }
-
     pub fn spawn_thrown(
         commands: &mut Commands,
         ball_assets: &BallAssets,
@@ -125,7 +110,10 @@ impl Ball {
         velocity: Vec3,
     ) {
         commands.spawn((
-            Self::default(),
+            Self {
+                dangerous: true,
+                ..default()
+            },
             PbrBundle {
                 mesh: ball_assets.mesh.clone(),
                 material: ball_assets.material.clone(),
@@ -137,6 +125,7 @@ impl Ball {
             Self::thrown_groups(),
             Ccd::enabled(),
             ActiveEvents::COLLISION_EVENTS,
+            ActiveCollisionTypes::default() | ActiveCollisionTypes::KINEMATIC_KINEMATIC,
             // Increased density for better impact.
             ColliderMassProperties::Density(10.0),
             Velocity::linear(velocity),
@@ -155,6 +144,10 @@ impl Ball {
                 ..default()
             },
         ));
+    }
+
+    pub fn on_touch_ground(&mut self) {
+        self.dangerous = false;
     }
 }
 
@@ -181,9 +174,4 @@ impl BallAssets {
             material: materials.add(Color::RED.into()),
         }
     }
-}
-
-#[derive(Component)]
-pub struct Cooldown {
-    pub timer: Timer,
 }

@@ -22,7 +22,7 @@ use boundaries::Boundaries;
 use collision::{handle_ball_floor_collisions, handle_ball_player_collisions};
 use gym::{Gym, GymAssets, GymParams};
 use player::TargetEnemy;
-use player::{AvoidPlayers, KnockedOut, Player, PlayerBall};
+use player::{AvoidPlayers, KnockedOut, Player};
 use smooth_bevy_cameras::controllers::orbit::{
     OrbitCameraBundle, OrbitCameraController, OrbitCameraPlugin,
 };
@@ -63,8 +63,8 @@ impl Plugin for GamePlugin {
         .add_systems(
             Update,
             (
-                PlayerBall::choose_target_ball,
-                PlayerBall::pick_up_ball,
+                // PlayerBall::choose_target_ball,
+                // PlayerBall::pick_up_ball,
                 AvoidPlayers::avoid_other_players,
                 TargetEnemy::find_target_enemy,
                 Player::throw_ball_at_enemy,

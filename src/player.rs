@@ -13,7 +13,7 @@ use crate::{
     ball::{Ball, BallAssets},
     boundaries::Boundaries,
     collision,
-    parameters::{AVOID_FACTOR, CHASE_FACTOR, THROW_COOLDOWN_MILLIS, THROW_START_RADIUS},
+    parameters::{AVOID_FACTOR, CHASE_FACTOR, THROW_COOLDOWN_MILLIS},
     squad::{Squad, SquadAi, SquadAssets, SquadBehaviors, SquadStates},
     team::{AllTeamAssets, Team, TeamAssets},
 };
@@ -218,11 +218,13 @@ impl Player {
     pub fn throw_ball_at_enemy(
         mut commands: Commands,
         time: Res<Time>,
+        team_assets: Res<AllTeamAssets>,
         ball_assets: Res<BallAssets>,
         stats: Res<SquadBehaviors>,
         mut players: Query<
             (
                 Entity,
+                &Team,
                 &Squad,
                 &GlobalTransform,
                 &mut TargetEnemy,
@@ -235,6 +237,7 @@ impl Player {
     ) {
         for (
             player_entity,
+            player_team,
             player_squad,
             player_tfm,
             mut target_enemy,
@@ -275,20 +278,24 @@ impl Player {
 
             let stats = &stats.squads[player_squad.squad as usize].stats;
 
-            let enemy_direction = (enemy_pos - player_pos).normalize();
-
             // Check if the enemy is within throwing distance.
-            let enemy_dist = enemy_pos.distance(player_pos);
+            let enemy_vector = enemy_pos - player_pos;
+            let enemy_dist = enemy_vector.length();
             if enemy_dist <= stats.throw_distance {
                 // Despawn the held ball.
                 commands.entity(player_entity).despawn_descendants();
                 player_ball.holding_ball = false;
 
                 // Spawn a thrown ball.
-                let loft = 4.0 * Vec3::Y;
-                let throw_velocity = stats.throw_speed * enemy_direction + loft;
-                let throw_start = player_pos + enemy_direction * THROW_START_RADIUS;
-                Ball::spawn_thrown(&mut commands, &ball_assets, throw_start, throw_velocity);
+                // Start the throw over the player's heads so they don't friendly fire.
+                let player_height = team_assets.teams[player_team.team() as usize].size.y;
+                let over_head_m = 0.3;
+                let start_y = player_height + over_head_m;
+                let max_y = start_y + 1.0;
+                let end_y = 0.5 * player_height; // TODO: should look at other team's height
+                let throw_v = throw_velocity(enemy_vector.xz(), start_y, max_y, end_y);
+                let throw_start = Vec3::new(player_pos.x, start_y, player_pos.z);
+                Ball::spawn_thrown(&mut commands, &ball_assets, throw_start, throw_v);
             } else {
                 // Run towards the enemy.
                 // TODO: enable but prioritize against following squad AI
@@ -309,4 +316,23 @@ impl ThrowCooldown {
             timer: Timer::new(Duration::from_millis(THROW_COOLDOWN_MILLIS), default()),
         }
     }
+}
+
+fn throw_velocity(lateral_displacement: Vec2, start_y: f32, max_y: f32, end_y: f32) -> Vec3 {
+    let g = 9.80665;
+
+    // Constant-acceleration kinematic equation: 0 = (1/2)at^2 + height
+    let rise_time = (2.0 * (max_y - start_y) / g).sqrt();
+    let fall_time = (2.0 * (max_y - end_y) / g).sqrt();
+
+    let travel_time = rise_time + fall_time;
+
+    // v = d / t
+    let lateral_v = lateral_displacement / travel_time;
+    let [v_x, v_z] = lateral_v.to_array();
+
+    // Conservation of energy: mgh = (1/2)mv^2
+    let v_y = (2.0 * g * (max_y - start_y)).sqrt();
+
+    Vec3::new(v_x, v_y, v_z)
 }

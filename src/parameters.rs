@@ -18,5 +18,3 @@ pub const SQUAD_CLUSTER_DENSITY: f32 = 1.0;
 /// This doubles as the time a player must wait between picking up a ball and
 /// throwing it.
 pub const THROW_COOLDOWN_MILLIS: u64 = 2000;
-/// Make sure the ball doesn't immediately collide with the thrower.
-pub const THROW_START_RADIUS: f32 = 0.6;

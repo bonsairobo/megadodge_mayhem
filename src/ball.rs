@@ -128,9 +128,9 @@ impl Ball {
             ColliderMassProperties::Density(10.0),
             Velocity::linear(velocity),
             Damping {
-                // Air friction.
-                linear_damping: 0.8,
-                angular_damping: 1.0,
+                // Balls should come to rest eventually.
+                linear_damping: 0.05,
+                ..default()
             },
             Restitution {
                 // Bouncy

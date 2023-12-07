@@ -104,7 +104,8 @@ fn setup(
     let gym_assets = GymAssets::new(gym_params, &mut meshes, &mut materials);
     Gym::spawn(&mut commands, &gym_assets);
     let bounds = Boundaries { min: -he, max: he };
-    let spawn_aabbs = gym_params.spawn_aabbs();
+    let player_spawn_aabbs = gym_params.player_spawn_aabbs(4.0);
+    let ball_spawn_aabb = gym_params.ball_spawn_aabb(2.0);
 
     commands
         .spawn(Camera3dBundle {
@@ -156,14 +157,13 @@ fn setup(
     }
 
     let ball_assets = BallAssets::new(&mut meshes, &mut materials);
-    let n_balls = 100;
-    Ball::spawn_multiple_in_line(
+    let n_balls = 300;
+    Ball::spawn_multiple_in_aabb(
         &mut commands,
         &ball_assets,
         &bounds,
+        ball_spawn_aabb,
         n_balls,
-        [-he.x, 0.0, 0.0].into(),
-        [he.x, 0.0, 0.0].into(),
     );
 
     let team_colors = [Color::GREEN, Color::BLUE];
@@ -184,7 +184,7 @@ fn setup(
                 &squad_assets.squads[squad as usize],
                 team,
                 squad,
-                spawn_aabbs[team as usize],
+                player_spawn_aabbs[team as usize],
                 squad_size,
             )
         })

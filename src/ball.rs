@@ -1,6 +1,7 @@
-use crate::{boundaries::Boundaries, collision};
+use crate::{aabb::Aabb2, boundaries::Boundaries, collision};
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
+use rand::Rng;
 
 #[derive(Component, Default)]
 pub struct Ball {
@@ -54,19 +55,18 @@ impl Ball {
         ));
     }
 
-    pub fn spawn_multiple_in_line(
+    pub fn spawn_multiple_in_aabb(
         commands: &mut Commands,
         ball_assets: &BallAssets,
         bounds: &Boundaries,
+        aabb: Aabb2,
         n_balls: usize,
-        start: Vec3,
-        end: Vec3,
     ) {
-        let delta = (end - start) / n_balls as f32;
-        let mut position = start;
+        let mut rng = rand::thread_rng();
         for _ in 0..n_balls {
-            Self::spawn_on_ground(commands, ball_assets, bounds, position);
-            position += delta;
+            let x = rng.gen_range(aabb.min.x..aabb.max.x);
+            let z = rng.gen_range(aabb.min.y..aabb.max.y);
+            Self::spawn_on_ground(commands, ball_assets, bounds, Vec3::new(x, 0.0, z));
         }
     }
 

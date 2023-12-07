@@ -103,12 +103,17 @@ impl GymParams {
         0.5 * self.thickness
     }
 
-    pub fn spawn_aabbs(&self) -> [Aabb2; 2] {
+    pub fn player_spawn_aabbs(&self, width: f32) -> [Aabb2; 2] {
         let he = self.half_extents();
         [
-            Aabb2::new([-he.x, he.z - 1.0].into(), [he.x, he.z + 1.0].into()),
-            Aabb2::new([-he.x, -he.z - 1.0].into(), [he.x, -he.z + 1.0].into()),
+            Aabb2::new([-he.x, he.z - width].into(), [he.x, he.z].into()),
+            Aabb2::new([-he.x, -he.z].into(), [he.x, -he.z + width].into()),
         ]
+    }
+
+    pub fn ball_spawn_aabb(&self, width: f32) -> Aabb2 {
+        let he = self.half_extents();
+        Aabb2::new([-he.x, -width].into(), [he.x, width].into())
     }
 }
 

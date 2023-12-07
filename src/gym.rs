@@ -91,7 +91,7 @@ pub struct GymParams {
 impl Default for GymParams {
     fn default() -> Self {
         Self {
-            size: Vec3::new(40.0, 100.0, 72.0),
+            size: Vec3::new(80.0, 100.0, 144.0),
             thickness: 1.0,
         }
     }

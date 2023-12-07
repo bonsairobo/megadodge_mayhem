@@ -118,8 +118,8 @@ fn setup(
     let gym_assets = GymAssets::new(gym_params, &mut meshes, &mut materials);
     Gym::spawn(&mut commands, &gym_assets);
     let bounds = Boundaries { min: -he, max: he };
-    let player_spawn_aabbs = gym_params.player_spawn_aabbs(8.0);
-    let ball_spawn_aabb = gym_params.ball_spawn_aabb(2.0);
+    let player_spawn_aabbs = gym_params.player_spawn_aabbs(16.0);
+    let ball_spawn_aabb = gym_params.ball_spawn_aabb(4.0);
     let occupancy = gym_params.occupancy_grid();
 
     commands
@@ -161,7 +161,7 @@ fn setup(
     for light_position in light_positions {
         commands.spawn(PointLightBundle {
             point_light: PointLight {
-                intensity: 1000.0,
+                intensity: 2000.0,
                 range: 50.0,
                 shadows_enabled: true,
                 ..default()
@@ -172,7 +172,7 @@ fn setup(
     }
 
     let ball_assets = BallAssets::new(&mut meshes, &mut materials);
-    let n_balls = 300;
+    let n_balls = 1000;
     Ball::spawn_multiple_in_aabb(
         &mut commands,
         &ball_assets,
@@ -182,28 +182,35 @@ fn setup(
     );
 
     let team_colors = [Color::GREEN, Color::BLUE];
-    let squad_teams = [0, 0, 0, 1, 1, 1];
+    let squad_teams = [0, 0, 0, 0, 1, 1, 1, 1];
     let n_squads = squad_teams.len();
-    let squad_size = 160;
+    let squad_size = 750;
 
     let squad_colors = squad_teams.map(|t| team_colors[t as usize]);
     let team_assets = AllTeamAssets::new(team_colors, &mut meshes, &mut materials);
     let squad_assets = AllSquadAssets::new(squad_colors, &mut materials);
 
-    let squad_ai_entities: Vec<_> = (0..)
-        .zip(squad_teams)
-        .map(|(squad, team)| {
-            Squad::spawn(
-                &mut commands,
-                &team_assets.teams[team as usize],
-                &squad_assets.squads[squad as usize],
-                team,
-                squad,
-                player_spawn_aabbs[team as usize],
-                squad_size,
-            )
-        })
-        .collect();
+    let mut squad_ai_entities = Vec::new();
+    Squad::spawn_in_line(
+        &mut commands,
+        &team_assets.teams[0],
+        &squad_assets,
+        0,
+        0..4,
+        player_spawn_aabbs[0],
+        squad_size,
+        &mut squad_ai_entities,
+    );
+    Squad::spawn_in_line(
+        &mut commands,
+        &team_assets.teams[1],
+        &squad_assets,
+        1,
+        4..8,
+        player_spawn_aabbs[1],
+        squad_size,
+        &mut squad_ai_entities,
+    );
 
     let squad_behaviors = SquadBehaviors::new(squad_ai_entities);
     let squad_states = SquadStates::new(vec![squad_size; n_squads]);

@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use crate::{
     aabb::Aabb2,
     collision,
@@ -22,6 +24,7 @@ impl Squad {
         Self { squad }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn spawn(
         commands: &mut Commands,
         team_assets: &TeamAssets,
@@ -29,6 +32,7 @@ impl Squad {
         team: u8,
         squad: u8,
         aabb: Aabb2,
+        leader_pos: Vec2,
         n_players: u32,
     ) -> Entity {
         assert!(n_players > 0);
@@ -48,14 +52,44 @@ impl Squad {
             ));
         }
 
-        let ai_pos = aabb.center();
         commands
             .spawn(SquadAiBundle::new(
                 team,
                 squad,
-                Vec3::new(ai_pos.x, 0.0, ai_pos.y),
+                Vec3::new(leader_pos.x, 0.0, leader_pos.y),
             ))
             .id()
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn spawn_in_line(
+        commands: &mut Commands,
+        team_assets: &TeamAssets,
+        squad_assets: &AllSquadAssets,
+        team: u8,
+        squads: Range<u8>,
+        aabb: Aabb2,
+        players_per_squad: u32,
+        squad_ai_entities: &mut Vec<Entity>,
+    ) {
+        let n_squads = squads.len();
+        let dx_squad = (aabb.max.x - aabb.min.x) / n_squads as f32;
+        let c = aabb.center();
+        let halfway_to_center_line = c.y / 2.0;
+        let start = Vec2::new(aabb.min.x + 0.5 * dx_squad, halfway_to_center_line);
+        squad_ai_entities.extend(squads.enumerate().map(|(i, squad)| {
+            let leader_pos = start + dx_squad * Vec2::X * i as f32;
+            Squad::spawn(
+                commands,
+                team_assets,
+                &squad_assets.squads[squad as usize],
+                team,
+                squad,
+                aabb,
+                leader_pos,
+                players_per_squad,
+            )
+        }));
     }
 }
 
@@ -165,9 +199,7 @@ pub struct PlayerStats {
     pub run_speed: f32,
     // TODO: use this
     pub throw_accuracy: f32,
-    // TODO: calculate this from throw velocity
     pub throw_distance: f32,
-    pub throw_speed: f32,
 
     // TODO: use this
     pub p_block: Probability,
@@ -179,10 +211,9 @@ impl Default for PlayerStats {
     fn default() -> Self {
         Self {
             dodge_speed: 1.0,
-            run_speed: 7.0,
+            run_speed: 10.0,
             throw_accuracy: 0.8,
-            throw_distance: 10.0,
-            throw_speed: 20.0,
+            throw_distance: 15.0,
             p_block: 0.7,
             p_catch: 0.2,
         }

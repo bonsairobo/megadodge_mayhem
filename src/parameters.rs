@@ -10,10 +10,18 @@ pub const DESPAWN_SECONDS: u64 = 5;
 /// How close a player must be to a ball to pick it up.
 pub const PICKUP_RADIUS: f32 = 1.0;
 pub const SQUAD_AI_COLLIDER_HEIGHT: f32 = 0.1;
+pub const SQUAD_AI_COLLIDER_RADIUS: f32 = 2.0;
 /// Players per square meter.
 pub const SQUAD_CLUSTER_DENSITY: f32 = 1.0;
+/// How far a thrown ball travels upwards on its trajectory.
+///
+/// This should be nonzero to avoid friendly fire.
+pub const THROW_LOFT: f32 = 0.1;
+/// A percentage of the target's height.
+pub const THROW_TARGET_HEIGHT: f32 = 0.8;
 /// How long a player must wait between throws.
 ///
 /// This doubles as the time a player must wait between picking up a ball and
 /// throwing it.
 pub const THROW_COOLDOWN_MILLIS: u64 = 2000;
+pub const THROW_OVER_HEAD: f32 = 0.3;

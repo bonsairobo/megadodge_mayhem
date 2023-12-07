@@ -13,7 +13,10 @@ use crate::{
     ball::{Ball, BallAssets},
     boundaries::Boundaries,
     collision,
-    parameters::{AVOID_FACTOR, CHASE_FACTOR, THROW_COOLDOWN_MILLIS},
+    parameters::{
+        AVOID_FACTOR, CHASE_FACTOR, THROW_COOLDOWN_MILLIS, THROW_LOFT, THROW_OVER_HEAD,
+        THROW_TARGET_HEIGHT,
+    },
     squad::{Squad, SquadAi, SquadAssets, SquadBehaviors, SquadStates},
     team::{AllTeamAssets, Team, TeamAssets},
 };
@@ -315,10 +318,9 @@ impl Player {
                 // Spawn a thrown ball.
                 // Start the throw over the player's heads so they don't friendly fire.
                 let player_height = team_assets.teams[player_team.team() as usize].size.y;
-                let over_head_m = 0.3;
-                let start_y = player_height + over_head_m;
-                let max_y = start_y + 0.1;
-                let end_y = 0.5 * player_height; // TODO: should look at other team's height
+                let start_y = player_height + THROW_OVER_HEAD;
+                let max_y = start_y + THROW_LOFT;
+                let end_y = THROW_TARGET_HEIGHT * player_height; // TODO: should look at other team's height
                 let throw_v = throw_velocity(enemy_vector.xz(), start_y, max_y, end_y);
                 let throw_start = Vec3::new(player_pos.x, start_y, player_pos.z);
                 Ball::spawn_thrown(&mut commands, &ball_assets, throw_start, throw_v);

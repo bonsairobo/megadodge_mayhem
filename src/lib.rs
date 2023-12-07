@@ -117,7 +117,7 @@ fn setup(
     let gym_assets = GymAssets::new(gym_params, &mut meshes, &mut materials);
     Gym::spawn(&mut commands, &gym_assets);
     let bounds = Boundaries { min: -he, max: he };
-    let player_spawn_aabbs = gym_params.player_spawn_aabbs(4.0);
+    let player_spawn_aabbs = gym_params.player_spawn_aabbs(8.0);
     let ball_spawn_aabb = gym_params.ball_spawn_aabb(2.0);
 
     commands

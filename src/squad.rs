@@ -1,6 +1,8 @@
 use crate::{
     aabb::Aabb2,
-    parameters::{BLOOM_INTENSITY, SQUAD_AI_COLLIDER_HEIGHT, SQUAD_CLUSTER_DENSITY},
+    parameters::{
+        BLOOM_INTENSITY, SQUAD_AI_COLLIDER_HEIGHT, SQUAD_AI_COLLIDER_RADIUS, SQUAD_CLUSTER_DENSITY,
+    },
     player::{KnockedOut, Player, PlayerBall, PlayerBundle},
     team::{AllTeamAssets, Team, TeamAssets},
 };
@@ -246,7 +248,7 @@ impl SquadStates {
             let Ok(mut collider) = squad_ai_colliders.get_mut(behavior.leader) else {
                 continue;
             };
-            *collider = Collider::cylinder(squad_collider_height(squad), state.cluster_radius);
+            *collider = Collider::cylinder(squad_collider_height(squad), SQUAD_AI_COLLIDER_RADIUS);
         }
     }
 }

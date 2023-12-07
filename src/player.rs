@@ -291,7 +291,7 @@ impl Player {
                 let player_height = team_assets.teams[player_team.team() as usize].size.y;
                 let over_head_m = 0.3;
                 let start_y = player_height + over_head_m;
-                let max_y = start_y + 1.0;
+                let max_y = start_y + 0.1;
                 let end_y = 0.5 * player_height; // TODO: should look at other team's height
                 let throw_v = throw_velocity(enemy_vector.xz(), start_y, max_y, end_y);
                 let throw_start = Vec3::new(player_pos.x, start_y, player_pos.z);

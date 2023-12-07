@@ -21,15 +21,13 @@ use bevy_rapier3d::prelude::*;
 use boundaries::Boundaries;
 use collision::{handle_ball_floor_collisions, handle_ball_player_collisions};
 use gym::{Gym, GymAssets, GymParams};
+use player::TargetEnemy;
 use player::{AvoidPlayers, KnockedOut, Player, PlayerBall};
 use smooth_bevy_cameras::controllers::orbit::{
     OrbitCameraBundle, OrbitCameraController, OrbitCameraPlugin,
 };
 use smooth_bevy_cameras::LookTransformPlugin;
-use squad::AllSquadAssets;
-use squad::SquadAi;
-use squad::SquadStates;
-use squad::{Squad, SquadBehaviors};
+use squad::{AllSquadAssets, Squad, SquadAi, SquadBehaviors, SquadStates};
 use squad_ui::draw_squad_uis;
 use team::AllTeamAssets;
 
@@ -65,8 +63,8 @@ impl Plugin for GamePlugin {
                 PlayerBall::choose_target_ball,
                 PlayerBall::pick_up_ball,
                 AvoidPlayers::avoid_other_players,
-                // TargetEnemy::find_target_enemy,
-                // Player::throw_ball_at_enemy,
+                TargetEnemy::find_target_enemy,
+                Player::throw_ball_at_enemy,
                 Player::follow_leader,
                 KnockedOut::update,
                 handle_ball_player_collisions,
@@ -170,6 +168,7 @@ fn setup(
 
     let team_colors = [Color::GREEN, Color::BLUE];
     let squad_teams = [0, 0, 0, 1, 1, 1];
+    let n_squads = squad_teams.len();
     let squad_size = 160;
 
     let squad_colors = squad_teams.map(|t| team_colors[t as usize]);
@@ -192,7 +191,7 @@ fn setup(
         .collect();
 
     let squad_behaviors = SquadBehaviors::new(squad_ai_entities);
-    let squad_states = SquadStates::new(vec![squad_size; squad_teams.len()]);
+    let squad_states = SquadStates::new(vec![squad_size; n_squads]);
 
     commands.insert_resource(ball_assets);
     commands.insert_resource(bounds);

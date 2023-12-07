@@ -291,7 +291,8 @@ impl Player {
                 Ball::spawn_thrown(&mut commands, &ball_assets, throw_start, throw_velocity);
             } else {
                 // Run towards the enemy.
-                target_enemy.chase_vector = enemy_direction;
+                // TODO: enable but prioritize against following squad AI
+                // target_enemy.chase_vector = enemy_direction;
             }
         }
     }

@@ -6,7 +6,7 @@ use crate::{
 };
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
-use bevy_rapier3d::prelude::Collider;
+use bevy_rapier3d::prelude::{Collider, CollisionGroups, Group};
 use rand::Rng;
 
 #[derive(Component)]
@@ -235,13 +235,13 @@ impl SquadStates {
         }
 
         // Update squad AI colliders.
-        for (state, behavior) in states.squads.iter_mut().zip(&behaviors.squads) {
+        for ((squad, state), behavior) in (0..).zip(&mut states.squads).zip(&behaviors.squads) {
             state.set_cluster_radius(behavior.cluster_density);
 
             let Ok(mut collider) = squad_ai_colliders.get_mut(behavior.leader) else {
                 continue;
             };
-            *collider = Collider::cylinder(SQUAD_AI_COLLIDER_HEIGHT, state.cluster_radius);
+            *collider = Collider::cylinder(squad_collider_height(squad), state.cluster_radius);
         }
     }
 }
@@ -380,6 +380,7 @@ pub struct SquadAiBundle {
     pub rapier_pickable: RapierPickable,
     pub pickable: Pickable,
     pub collider: Collider,
+    pub collision_groups: CollisionGroups,
     pub on_click: On<Pointer<Click>>,
     pub on_over: On<Pointer<Over>>,
     pub on_out: On<Pointer<Out>>,
@@ -402,10 +403,19 @@ impl SquadAiBundle {
                 should_emit_events: true,
             },
             // The radius will update as the squad cluster radius changes.
-            collider: Collider::cylinder(SQUAD_AI_COLLIDER_HEIGHT, 1.0),
+            collider: Collider::cylinder(squad_collider_height(squad), 1.0),
+            // I'm a little surprised that picking still works with these
+            // collision filters, but I'm not complaining.
+            collision_groups: CollisionGroups::new(Group::NONE, Group::NONE),
             on_click: On::<Pointer<Click>>::run(SquadAi::select_squad),
             on_over: On::<Pointer<Over>>::run(SquadAi::highlight_squad),
             on_out: On::<Pointer<Out>>::run(SquadAi::unhighlight_squad),
         }
     }
+}
+
+fn squad_collider_height(squad: u8) -> f32 {
+    // HACK: we need some way to prioritize picking when squads overlap.
+    // It's pretty easy to just give them colliders of different heights.
+    f32::from(squad + 1) * SQUAD_AI_COLLIDER_HEIGHT
 }

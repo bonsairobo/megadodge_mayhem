@@ -21,7 +21,7 @@ use bevy_rapier3d::prelude::*;
 use boundaries::Boundaries;
 use collision::{handle_ball_floor_collisions, handle_ball_player_collisions};
 use gym::{Gym, GymAssets, GymParams};
-use player::{AvoidPlayers, KnockedOut, Player, PlayerBall, TargetEnemy};
+use player::{AvoidPlayers, KnockedOut, Player, PlayerBall};
 use smooth_bevy_cameras::controllers::orbit::{
     OrbitCameraBundle, OrbitCameraController, OrbitCameraPlugin,
 };
@@ -101,6 +101,13 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+    let gym_params = GymParams::default();
+    let he = gym_params.half_extents();
+    let gym_assets = GymAssets::new(gym_params, &mut meshes, &mut materials);
+    Gym::spawn(&mut commands, &gym_assets);
+    let bounds = Boundaries { min: -he, max: he };
+    let spawn_aabbs = gym_params.spawn_aabbs();
+
     commands
         .spawn(Camera3dBundle {
             camera: Camera {
@@ -128,9 +135,6 @@ fn setup(
             RapierPickable,
         ));
 
-    let gym_params = GymParams::default();
-    let he = gym_params.half_extents();
-
     // TODO: animated spotlights could look really cool
     let hhe = 0.5 * he;
     let light_positions = [
@@ -153,23 +157,7 @@ fn setup(
         });
     }
 
-    let gym_assets = GymAssets::new(gym_params, &mut meshes, &mut materials);
-
-    Gym::spawn(&mut commands, &gym_assets);
-
-    let bounds = Boundaries { min: -he, max: he };
-
-    let team_colors = [Color::GREEN, Color::BLUE];
-    let squad_teams = [0, 1];
-    let squad_colors = [
-        team_colors[squad_teams[0] as usize],
-        team_colors[squad_teams[1] as usize],
-    ];
-
-    let team_assets = AllTeamAssets::new(team_colors, &mut meshes, &mut materials);
-    let squad_assets = AllSquadAssets::new(squad_colors, &mut materials);
     let ball_assets = BallAssets::new(&mut meshes, &mut materials);
-
     let n_balls = 100;
     Ball::spawn_multiple_in_line(
         &mut commands,
@@ -180,30 +168,31 @@ fn setup(
         [he.x, 0.0, 0.0].into(),
     );
 
-    let spawn_aabbs = gym_params.spawn_aabbs();
-
+    let team_colors = [Color::GREEN, Color::BLUE];
+    let squad_teams = [0, 0, 0, 1, 1, 1];
     let squad_size = 160;
-    let squad_ai_0 = Squad::spawn(
-        &mut commands,
-        &team_assets.teams[0],
-        &squad_assets.squads[0],
-        squad_teams[0],
-        0,
-        spawn_aabbs[0],
-        squad_size,
-    );
-    let squad_ai_1 = Squad::spawn(
-        &mut commands,
-        &team_assets.teams[1],
-        &squad_assets.squads[1],
-        1,
-        1,
-        spawn_aabbs[1],
-        squad_size,
-    );
 
-    let squad_behaviors = SquadBehaviors::new(vec![squad_ai_0, squad_ai_1]);
-    let squad_states = SquadStates::new(vec![squad_size; 2]);
+    let squad_colors = squad_teams.map(|t| team_colors[t as usize]);
+    let team_assets = AllTeamAssets::new(team_colors, &mut meshes, &mut materials);
+    let squad_assets = AllSquadAssets::new(squad_colors, &mut materials);
+
+    let squad_ai_entities: Vec<_> = (0..)
+        .zip(squad_teams)
+        .map(|(squad, team)| {
+            Squad::spawn(
+                &mut commands,
+                &team_assets.teams[team as usize],
+                &squad_assets.squads[squad as usize],
+                team,
+                squad,
+                spawn_aabbs[team as usize],
+                squad_size,
+            )
+        })
+        .collect();
+
+    let squad_behaviors = SquadBehaviors::new(squad_ai_entities);
+    let squad_states = SquadStates::new(vec![squad_size; squad_teams.len()]);
 
     commands.insert_resource(ball_assets);
     commands.insert_resource(bounds);

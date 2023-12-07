@@ -160,7 +160,7 @@ impl Player {
             let stats = &behaviors.squads[squad.squad as usize].stats;
 
             let mut accum_linvel = velocity.linvel;
-            if ball.chasing_ball.is_some() {
+            if ball.target_ball.is_some() {
                 accum_linvel += CHASE_FACTOR * ball.chase_vector;
             }
             if target_enemy.target_enemy.is_some() {

@@ -62,9 +62,8 @@ impl Plugin for GamePlugin {
         .add_systems(
             Update,
             (
-                // PlayerBall::choose_ball_to_chase,
-                // TODO: make these one system?
-                // PlayerBall::chase_ball.after(PlayerBall::choose_ball_to_chase),
+                PlayerBall::choose_target_ball,
+                PlayerBall::pick_up_ball,
                 AvoidPlayers::avoid_other_players,
                 // TargetEnemy::find_target_enemy,
                 // Player::throw_ball_at_enemy,

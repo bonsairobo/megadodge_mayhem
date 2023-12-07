@@ -49,6 +49,7 @@ impl Plugin for GamePlugin {
         })
         .init_resource::<SquadUi>()
         .add_systems(Startup, (setup, transparency_hack))
+        .add_systems(PreUpdate, emulate_right_click_with_alt)
         .add_systems(
             Update,
             (
@@ -77,6 +78,16 @@ impl Plugin for GamePlugin {
         )
         .add_systems(Update, Player::finalize_kinematics)
         .add_systems(PostUpdate, SquadStates::update);
+    }
+}
+
+// Mostly for laptops without good right click and drag support.
+fn emulate_right_click_with_alt(keys: Res<Input<KeyCode>>, mut mouse: ResMut<Input<MouseButton>>) {
+    if keys.pressed(KeyCode::AltLeft) || keys.pressed(KeyCode::AltRight) {
+        mouse.press(MouseButton::Right);
+    }
+    if keys.just_released(KeyCode::AltLeft) || keys.just_released(KeyCode::AltRight) {
+        mouse.release(MouseButton::Right);
     }
 }
 

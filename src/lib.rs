@@ -28,7 +28,7 @@ use smooth_bevy_cameras::controllers::orbit::{
 };
 use smooth_bevy_cameras::LookTransformPlugin;
 use squad::{AllSquadAssets, Squad, SquadAi, SquadBehaviors, SquadStates};
-use squad_ui::draw_squad_uis;
+use squad_ui::SquadUi;
 use team::AllTeamAssets;
 
 pub struct GamePlugin;
@@ -47,12 +47,14 @@ impl Plugin for GamePlugin {
         .insert_resource(RapierBackendSettings {
             require_markers: true,
         })
+        .init_resource::<SquadUi>()
         .add_systems(Startup, (setup, transparency_hack))
         .add_systems(
             Update,
             (
                 grab_mouse,
-                draw_squad_uis,
+                SquadUi::toggle,
+                SquadUi::draw,
                 SquadAi::move_to_requested_positions,
             ),
         )

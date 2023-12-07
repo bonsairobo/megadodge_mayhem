@@ -10,6 +10,100 @@ pub struct Ball {
     dangerous: bool,
 }
 
+#[derive(Bundle)]
+pub struct BallBundle {
+    pub active_events: ActiveEvents,
+    pub ball: Ball,
+    pub body: RigidBody,
+    pub collider: Collider,
+    pub collision_types: ActiveCollisionTypes,
+    pub groups: CollisionGroups,
+    pub pbr: PbrBundle,
+}
+
+impl BallBundle {
+    pub fn new_on_ground(
+        ball_assets: &BallAssets,
+        bounds: &Boundaries,
+        mut position: Vec3,
+    ) -> Self {
+        position.y = ball_assets.radius;
+        Self {
+            active_events: ActiveEvents::COLLISION_EVENTS,
+            ball: default(),
+            body: RigidBody::KinematicPositionBased,
+            collider: Collider::ball(ball_assets.radius),
+            collision_types: ActiveCollisionTypes::default()
+                | ActiveCollisionTypes::KINEMATIC_KINEMATIC,
+            groups: Ball::ground_groups(),
+            pbr: PbrBundle {
+                mesh: ball_assets.mesh.clone(),
+                material: ball_assets.material.clone(),
+                transform: Transform::from_translation(position.clamp(bounds.min, bounds.max)),
+                ..default()
+            },
+        }
+    }
+
+    fn new_thrown(ball_assets: &BallAssets, position: Vec3) -> Self {
+        Self {
+            ball: Ball {
+                dangerous: true,
+                ..default()
+            },
+            body: RigidBody::Dynamic,
+            collider: Collider::ball(ball_assets.radius),
+            groups: Ball::thrown_groups(),
+            active_events: ActiveEvents::COLLISION_EVENTS,
+            collision_types: ActiveCollisionTypes::default()
+                | ActiveCollisionTypes::KINEMATIC_KINEMATIC,
+            pbr: PbrBundle {
+                mesh: ball_assets.mesh.clone(),
+                material: ball_assets.material.clone(),
+                transform: Transform::from_translation(position),
+                ..default()
+            },
+        }
+    }
+}
+
+#[derive(Bundle)]
+pub struct ThrownBallBundle {
+    pub ball: BallBundle,
+    pub ccd: Ccd,
+    pub damping: Damping,
+    pub friction: Friction,
+    pub mass: ColliderMassProperties,
+    pub restitution: Restitution,
+    pub velocity: Velocity,
+}
+
+impl ThrownBallBundle {
+    pub fn new(ball_assets: &BallAssets, position: Vec3, velocity: Vec3) -> Self {
+        Self {
+            ball: BallBundle::new_thrown(ball_assets, position),
+            ccd: Ccd::enabled(),
+            damping: Damping {
+                // Balls should come to rest eventually.
+                linear_damping: 0.1,
+                angular_damping: 0.1,
+            },
+            friction: Friction {
+                coefficient: 0.7,
+                ..default()
+            },
+            // Increased density for better impact.
+            mass: ColliderMassProperties::Density(10.0),
+            restitution: Restitution {
+                // Bouncy
+                coefficient: 0.9,
+                ..default()
+            },
+            velocity: Velocity::linear(velocity),
+        }
+    }
+}
+
 impl Ball {
     const HELD_OFFSET: Vec3 = Vec3::new(0.4, 0.0, 0.0);
 
@@ -50,29 +144,6 @@ impl Ball {
         )
     }
 
-    pub fn spawn_on_ground(
-        commands: &mut Commands,
-        ball_assets: &BallAssets,
-        bounds: &Boundaries,
-        mut position: Vec3,
-    ) {
-        position.y = ball_assets.radius;
-        commands.spawn((
-            Self::default(),
-            PbrBundle {
-                mesh: ball_assets.mesh.clone(),
-                material: ball_assets.material.clone(),
-                transform: Transform::from_translation(position.clamp(bounds.min, bounds.max)),
-                ..default()
-            },
-            RigidBody::KinematicPositionBased,
-            Collider::ball(ball_assets.radius),
-            Self::ground_groups(),
-            ActiveEvents::COLLISION_EVENTS,
-            ActiveCollisionTypes::default() | ActiveCollisionTypes::KINEMATIC_KINEMATIC,
-        ));
-    }
-
     pub fn spawn_multiple_in_aabb(
         commands: &mut Commands,
         ball_assets: &BallAssets,
@@ -84,7 +155,11 @@ impl Ball {
         for _ in 0..n_balls {
             let x = rng.gen_range(aabb.min.x..aabb.max.x);
             let z = rng.gen_range(aabb.min.y..aabb.max.y);
-            Self::spawn_on_ground(commands, ball_assets, bounds, Vec3::new(x, 0.0, z));
+            commands.spawn(BallBundle::new_on_ground(
+                ball_assets,
+                bounds,
+                Vec3::new(x, 0.0, z),
+            ));
         }
     }
 
@@ -101,49 +176,6 @@ impl Ball {
         *body = RigidBody::KinematicPositionBased;
         // Don't appear in any collisions or queries until the ball is thrown.
         groups.filters = Group::NONE;
-    }
-
-    pub fn spawn_thrown(
-        commands: &mut Commands,
-        ball_assets: &BallAssets,
-        position: Vec3,
-        velocity: Vec3,
-    ) {
-        commands.spawn((
-            Self {
-                dangerous: true,
-                ..default()
-            },
-            PbrBundle {
-                mesh: ball_assets.mesh.clone(),
-                material: ball_assets.material.clone(),
-                transform: Transform::from_translation(position),
-                ..default()
-            },
-            RigidBody::Dynamic,
-            Collider::ball(ball_assets.radius),
-            Self::thrown_groups(),
-            Ccd::enabled(),
-            ActiveEvents::COLLISION_EVENTS,
-            ActiveCollisionTypes::default() | ActiveCollisionTypes::KINEMATIC_KINEMATIC,
-            // Increased density for better impact.
-            ColliderMassProperties::Density(10.0),
-            Velocity::linear(velocity),
-            Damping {
-                // Balls should come to rest eventually.
-                linear_damping: 0.1,
-                angular_damping: 0.1,
-            },
-            Restitution {
-                // Bouncy
-                coefficient: 0.9,
-                ..default()
-            },
-            Friction {
-                coefficient: 0.7,
-                ..default()
-            },
-        ));
     }
 
     pub fn on_touch_ground(&mut self) {

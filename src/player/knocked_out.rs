@@ -1,6 +1,6 @@
 use super::PlayerBall;
 use crate::{
-    ball::{Ball, BallAssets},
+    ball::{BallAssets, BallBundle},
     boundaries::Boundaries,
     parameters::DESPAWN_SECONDS,
 };
@@ -28,7 +28,7 @@ impl KnockedOut {
                 // of each other when a cluster is knocked out quickly
                 // TODO: preserve the player's original ball and make it dynamic?
                 let position = tfm.translation();
-                Ball::spawn_on_ground(&mut commands, &ball_assets, &bounds, position);
+                commands.spawn(BallBundle::new_on_ground(&ball_assets, &bounds, position));
                 commands.entity(entity).despawn_descendants();
                 ball.holding_ball = false;
             }

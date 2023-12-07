@@ -8,7 +8,7 @@ pub use self::target_enemy::TargetEnemy;
 
 use self::knocked_out::DespawnTimer;
 use crate::{
-    ball::{Ball, BallAssets},
+    ball::{BallAssets, ThrownBallBundle},
     boundaries::Boundaries,
     collision,
     parameters::{
@@ -331,7 +331,7 @@ impl Player {
                 let end_y = THROW_TARGET_HEIGHT * player_height; // TODO: should look at other team's height
                 let throw_v = throw_velocity(enemy_vector.xz(), start_y, max_y, end_y);
                 let throw_start = Vec3::new(player_pos.x, start_y, player_pos.z);
-                Ball::spawn_thrown(&mut commands, &ball_assets, throw_start, throw_v);
+                commands.spawn(ThrownBallBundle::new(&ball_assets, throw_start, throw_v));
             } else {
                 // Run towards the enemy.
                 // TODO: enable but prioritize against following squad AI

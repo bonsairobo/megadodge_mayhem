@@ -87,11 +87,11 @@ impl Ball {
     }
 
     /// Returns `true` if the claim was successful.
-    pub fn claim(&mut self, mask: u8) -> bool {
-        let already_claimed = self.is_claimed(mask);
-        self.claims_mask |= mask;
-        !already_claimed
-    }
+    // pub fn claim(&mut self, mask: u8) -> bool {
+    //     let already_claimed = self.is_claimed(mask);
+    //     self.claims_mask |= mask;
+    //     !already_claimed
+    // }
 
     pub fn drop_claim(&mut self, mask: u8) {
         self.claims_mask &= !mask;

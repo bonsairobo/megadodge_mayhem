@@ -1,10 +1,5 @@
 use super::{KnockedOut, Player, ThrowCooldown};
-use crate::{
-    ball::Ball,
-    collision,
-    parameters::{CLAIM_RADIUS, PICKUP_RADIUS},
-    team::Team,
-};
+use crate::{ball::Ball, collision, parameters::PICKUP_RADIUS, team::Team};
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 

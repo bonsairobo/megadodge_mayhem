@@ -205,7 +205,7 @@ impl SquadStates {
         mut states: ResMut<Self>,
         behaviors: Res<SquadBehaviors>,
         mut squad_ai_colliders: Query<&mut Collider, With<SquadAi>>,
-        squad_ais: Query<(&GlobalTransform), With<SquadAi>>,
+        squad_ais: Query<&GlobalTransform, With<SquadAi>>,
         players: Query<
             (&Squad, &GlobalTransform, &PlayerBall),
             (With<Player>, Without<KnockedOut>),

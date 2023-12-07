@@ -6,7 +6,7 @@ pub const BLOOM_INTENSITY: f32 = 1.5;
 /// How much to chase a ball.
 pub const CHASE_FACTOR: f32 = 0.2;
 /// If we're close enough, claim the ball (for this team).
-pub const CLAIM_RADIUS: f32 = 2.0;
+// pub const CLAIM_RADIUS: f32 = 2.0;
 pub const DESPAWN_SECONDS: u64 = 5;
 /// How close a player must be to a ball to pick it up.
 pub const PICKUP_RADIUS: f32 = 1.0;

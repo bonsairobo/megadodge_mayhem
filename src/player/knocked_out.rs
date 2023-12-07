@@ -24,6 +24,8 @@ impl KnockedOut {
         for (entity, tfm, mut ball, mut timer) in &mut players {
             if ball.holding_ball {
                 // Drop the ball.
+                // BUG: it's somewhat common for many balls to accumulate on top
+                // of each other when a cluster is knocked out quickly
                 // TODO: preserve the player's original ball and make it dynamic?
                 let position = tfm.translation();
                 Ball::spawn_on_ground(&mut commands, &ball_assets, &bounds, position);

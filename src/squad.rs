@@ -223,6 +223,8 @@ impl SquadStates {
                 state.num_holding_balls += 1;
             }
 
+            state.center_of_mass += tfm.translation();
+
             let behavior = &behaviors.squads[squad.squad as usize];
             let Ok(leader_tfm) = squad_ais.get(behavior.leader) else {
                 continue;
@@ -233,11 +235,14 @@ impl SquadStates {
                 state.num_players_in_cluster += 1;
             }
         }
+        for state in &mut states.squads {
+            state.center_of_mass /= state.num_players as f32;
+        }
 
-        // Update squad AI colliders.
         for ((squad, state), behavior) in (0..).zip(&mut states.squads).zip(&behaviors.squads) {
             state.set_cluster_radius(behavior.cluster_density);
 
+            // Update squad AI colliders.
             let Ok(mut collider) = squad_ai_colliders.get_mut(behavior.leader) else {
                 continue;
             };
@@ -246,10 +251,12 @@ impl SquadStates {
     }
 }
 
+#[derive(Default)]
 pub struct SquadState {
     pub num_players: u32,
     pub num_holding_balls: u32,
     pub num_players_in_cluster: u32,
+    pub center_of_mass: Vec3,
     pub cluster_radius: f32,
 }
 
@@ -257,9 +264,7 @@ impl SquadState {
     fn new(num_players: u32) -> Self {
         Self {
             num_players,
-            num_holding_balls: 0,
-            num_players_in_cluster: 0,
-            cluster_radius: 0.0,
+            ..default()
         }
     }
 
@@ -279,9 +284,7 @@ impl SquadState {
     }
 
     fn clear(&mut self) {
-        self.num_players = 0;
-        self.num_holding_balls = 0;
-        self.num_players_in_cluster = 0;
+        *self = default();
     }
 }
 

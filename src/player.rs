@@ -173,8 +173,8 @@ impl Player {
             accum_linvel.y = 0.0;
 
             assert!(accum_linvel.is_finite(), "{}", accum_linvel);
-            if accum_linvel.length_squared() > 0.0 {
-                velocity.linvel = stats.run_speed * accum_linvel.normalize();
+            if let Some(v) = accum_linvel.try_normalize() {
+                velocity.linvel = stats.run_speed * v;
             }
             assert!(velocity.linvel.is_finite(), "{}", velocity.linvel);
         }
@@ -199,18 +199,44 @@ impl Player {
 
             let leader_pos = leader_tfm.translation();
             let player_pos = player_tfm.translation();
-            let delta = leader_pos - player_pos;
-            let dist_to_center = delta.length();
 
-            // HACK: Be more agressive about running into the center of the
-            // cluster until most players are inside.
-            let delta_to_cluster = if state.cluster_percent() > 80 {
-                let dist_to_cluster = (dist_to_center - state.cluster_radius).max(0.0);
-                (dist_to_cluster * delta) / dist_to_center
+            // PERF: we could cache parts of this calculation in SquadState
+            //
+            // It's not good enough to just run to the leader. We want the
+            // center of mass to converge on the leader.
+            //
+            // Each player moves in the direction that the center of mass needs
+            // to move towards the target, but weighted by how far they are from
+            // the center.
+            let player_to_leader = leader_pos - player_pos;
+            let com_to_leader = leader_pos - state.center_of_mass;
+            let player_to_leader_dist = player_to_leader.length();
+            let player_to_cluster_dist = (player_to_leader_dist - state.cluster_radius).max(0.0);
+            let player_to_cluster =
+                (player_to_cluster_dist / player_to_leader_dist) * player_to_leader;
+
+            // Don't overshoot the cluster.
+            let vel_delta = if player_to_cluster_dist > 0.0 || com_to_leader.length_squared() < 1.0
+            {
+                // If the player is far enough from the cluster, just focus on
+                // getting into the cluster. If the squad's center of mass is
+                // already close to the leader, then also just focus on being in
+                // the cluster.
+                player_to_cluster
             } else {
-                delta
+                // Balance trying to be uniform around the center with actually
+                // find the correct center.
+                //
+                // The damping factor avoids a tendency to bunch into the center.
+                let dampen_bunching = 0.2;
+                com_to_leader + dampen_bunching * player_to_leader
             };
-            velocity.linvel += CHASE_FACTOR * delta_to_cluster.clamp_length_max(0.2);
+
+            // This is a tradeoff, because the more damping, the harder it is
+            // for clusters to pass through each other.
+            let avoid_bunching = 0.5;
+
+            velocity.linvel += CHASE_FACTOR * vel_delta.clamp_length_max(avoid_bunching);
         }
     }
 

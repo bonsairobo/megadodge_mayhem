@@ -3,7 +3,6 @@ pub const AVOID_FACTOR: f32 = 0.8;
 /// Try to avoid other players in some radius.
 pub const AVOID_RADIUS: f32 = 0.3;
 pub const BLOOM_INTENSITY: f32 = 1.5;
-/// How much to chase a ball.
 pub const CHASE_FACTOR: f32 = 0.2;
 /// If we're close enough, claim the ball (for this team).
 // pub const CLAIM_RADIUS: f32 = 2.0;

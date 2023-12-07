@@ -40,6 +40,11 @@ impl SquadUi {
             };
             let ai_window_pos = ai_viewport_pos + viewport_rect.min;
 
+            let state = &squad_states.squads[squad.squad as usize];
+            if state.num_players == 0 {
+                continue;
+            }
+
             dbg_painter.circle(
                 to_egui_pos(ai_window_pos),
                 10.0,
@@ -51,7 +56,6 @@ impl SquadUi {
                 continue;
             }
 
-            let state = &squad_states.squads[squad.squad as usize];
             let text = format!(
                 "SQUAD {}\nplayers: {}\nballs: {}% ({})\ncluster: {}%",
                 squad.squad,

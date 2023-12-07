@@ -31,9 +31,18 @@ impl Ball {
     fn thrown_groups() -> CollisionGroups {
         CollisionGroups::new(
             collision::groups::THROWN_BALL,
+            // WARNING/HACK: Do not collide with ground balls.
+            //
+            // While this would be nice, it's important that balls hit the
+            // ground to trigger a state transition. There are some cases where
+            // ground balls will congregate inside of a squad cluster, and
+            // they form a little "crown" where a thrown ball can rest without
+            // hitting the ground.
+            //
+            // The way that knocked out players drop balls is partly to blame
+            // for this issue.
             collision::groups::PLAYER
                 | collision::groups::BOUNDARIES
-                | collision::groups::GROUND_BALL
                 | collision::groups::THROWN_BALL,
         )
     }

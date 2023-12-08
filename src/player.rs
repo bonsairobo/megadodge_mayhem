@@ -1,10 +1,8 @@
 mod avoid_players;
 mod knocked_out;
-mod target_enemy;
 
 pub use self::avoid_players::AvoidPlayers;
 pub use self::knocked_out::KnockedOut;
-pub use self::target_enemy::TargetEnemy;
 
 use self::knocked_out::DespawnTimer;
 use crate::{
@@ -39,7 +37,6 @@ pub struct PlayerBundle {
     pub pbr: PbrBundle,
     pub player: Player,
     pub squad: Squad,
-    pub target_enemy: TargetEnemy,
     pub team: Team,
     pub throw_cooldown: ThrowCooldown,
     pub velocity: Velocity,
@@ -82,7 +79,6 @@ impl PlayerBundle {
                 ..default()
             },
             squad: Squad::new(squad),
-            target_enemy: default(),
             team: Team::new(team),
             throw_cooldown: ThrowCooldown::new(),
             velocity: Velocity::zero(),
@@ -156,25 +152,16 @@ impl Player {
     pub fn finalize_kinematics(
         behaviors: Res<SquadBehaviors>,
         mut players: Query<
-            (
-                &Squad,
-                &PlayerBall,
-                &TargetEnemy,
-                &AvoidPlayers,
-                &mut Velocity,
-            ),
+            (&Squad, &PlayerBall, &AvoidPlayers, &mut Velocity),
             (With<Player>, Without<KnockedOut>),
         >,
     ) {
-        for (squad, ball, target_enemy, avoid_players, mut velocity) in &mut players {
+        for (squad, ball, avoid_players, mut velocity) in &mut players {
             let stats = &behaviors.squads[squad.squad as usize].stats;
 
             let mut accum_linvel = velocity.linvel;
             if ball.target_ball.is_some() {
                 accum_linvel += CHASE_FACTOR * ball.chase_vector;
-            }
-            if target_enemy.target_enemy.is_some() {
-                accum_linvel += CHASE_FACTOR * target_enemy.chase_vector;
             }
             accum_linvel += AVOID_FACTOR * avoid_players.nearby_players_mass;
 

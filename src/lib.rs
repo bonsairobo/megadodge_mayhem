@@ -57,6 +57,7 @@ impl Plugin for GamePlugin {
                 SquadUi::toggle,
                 SquadUi::draw,
                 SquadAi::move_to_requested_positions,
+                SquadAi::find_target_enemy,
             ),
         )
         .add_systems(Update, Player::initialize_kinematics)

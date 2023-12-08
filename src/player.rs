@@ -256,33 +256,29 @@ impl Player {
         time: Res<Time>,
         team_assets: Res<AllTeamAssets>,
         ball_assets: Res<BallAssets>,
-        stats: Res<SquadBehaviors>,
+        behaviors: Res<SquadBehaviors>,
+        states: Res<SquadStates>,
         mut players: Query<
             (
                 Entity,
                 &Team,
                 &Squad,
                 &GlobalTransform,
-                &mut TargetEnemy,
                 &mut PlayerBall,
                 &mut ThrowCooldown,
             ),
             Without<KnockedOut>,
         >,
-        transforms: Query<&GlobalTransform>,
     ) {
         for (
             player_entity,
             player_team,
             player_squad,
             player_tfm,
-            mut target_enemy,
             mut player_ball,
             mut throw_cooldown,
         ) in &mut players
         {
-            target_enemy.can_target = false;
-
             if !player_ball.holding_ball {
                 continue;
             }
@@ -295,27 +291,23 @@ impl Player {
                 continue;
             }
 
-            target_enemy.can_target = true;
+            let squad_state = &states.squads[player_squad.squad as usize];
 
             // Make sure the player is in a good position to throw at the
             // other team or block incoming balls. There is a very low
             // probability of catching an incoming ball.
             // TODO
 
-            let Some(target_entity) = target_enemy.target_enemy else {
+            let Some(throw_target) = squad_state.throw_target else {
                 // No players!
                 continue;
             };
-            let Ok(enemy_tfm) = transforms.get(target_entity) else {
-                continue;
-            };
             let player_pos = player_tfm.translation();
-            let enemy_pos = enemy_tfm.translation();
 
-            let stats = &stats.squads[player_squad.squad as usize].stats;
+            let stats = &behaviors.squads[player_squad.squad as usize].stats;
 
             // Check if the enemy is within throwing distance.
-            let enemy_vector = enemy_pos - player_pos;
+            let enemy_vector = throw_target - player_pos;
             let enemy_dist = enemy_vector.length();
             if enemy_dist <= stats.throw_distance {
                 // Despawn the held ball.

@@ -1,5 +1,6 @@
 use crate::{
     aabb::Aabb2,
+    collision,
     parameters::{
         BLOOM_INTENSITY, SQUAD_AI_COLLIDER_HEIGHT, SQUAD_AI_COLLIDER_RADIUS, SQUAD_CLUSTER_DENSITY,
     },
@@ -8,7 +9,7 @@ use crate::{
 };
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
-use bevy_rapier3d::prelude::{Collider, CollisionGroups, Group};
+use bevy_rapier3d::prelude::{Collider, CollisionGroups, Group, QueryFilter, RapierContext};
 use rand::Rng;
 
 #[derive(Component)]
@@ -260,6 +261,7 @@ pub struct SquadState {
     pub num_players_in_cluster: u32,
     pub center_of_mass: Vec3,
     pub cluster_radius: f32,
+    pub throw_target: Option<Vec3>,
 }
 
 impl SquadState {
@@ -371,6 +373,43 @@ impl SquadAi {
             if let Some(requested_pos) = behavior.leader_position {
                 tfm.translation = Vec3::new(requested_pos.x, 0.0, requested_pos.y);
             }
+        }
+    }
+
+    pub fn find_target_enemy(
+        rapier_context: Res<RapierContext>,
+        mut states: ResMut<SquadStates>,
+        mut squad_ais: Query<(&Squad, &Team), With<Self>>,
+        teams: Query<&Team>,
+        transforms: Query<&GlobalTransform>,
+    ) {
+        for (squad, squad_team) in &mut squad_ais {
+            let state = &mut states.squads[squad.squad as usize];
+
+            state.throw_target = None;
+
+            let entity_on_enemy_team = |entity| {
+                teams
+                    .get(entity)
+                    .map(|team| team.team() != squad_team.team())
+                    .unwrap_or_default()
+            };
+            let select_enemy_players = QueryFilter::new()
+                .groups(CollisionGroups::new(
+                    collision::groups::QUERY,
+                    collision::groups::PLAYER,
+                ))
+                .predicate(&entity_on_enemy_team);
+
+            // Identify the closest target.
+            state.throw_target = rapier_context
+                .project_point(state.center_of_mass, true, select_enemy_players)
+                .and_then(|(nearest_player_entity, _)| {
+                    transforms
+                        .get(nearest_player_entity)
+                        .ok()
+                        .map(GlobalTransform::translation)
+                });
         }
     }
 }

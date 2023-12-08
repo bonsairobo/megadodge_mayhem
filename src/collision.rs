@@ -90,6 +90,12 @@ pub fn handle_ball_player_collisions(
                 &mut player_material,
             );
         } else {
+            // PERF: Using collision detection for ball pickup is the most
+            // accurate and flexible option, but we could optimize this by doing
+            // a single query per squad, then distributing balls out to players
+            // somehow, either by making them target the balls or just cheat and
+            // teleport the balls onto the players.
+
             // Maybe player should pick up this ball.
             if ball.is_held() || player_ball.holding_ball {
                 // We can't steal the ball or hold multiple.

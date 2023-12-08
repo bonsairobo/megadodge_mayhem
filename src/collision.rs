@@ -25,14 +25,13 @@ pub fn handle_ball_player_collisions(
     mut players: Query<
         (
             &Team,
-            &mut Player,
             &mut PlayerBall,
             &mut ThrowCooldown,
             &mut RigidBody,
             &mut CollisionGroups,
             &mut Handle<StandardMaterial>,
         ),
-        Without<KnockedOut>,
+        (With<Player>, Without<KnockedOut>),
     >,
     mut balls: Query<
         (
@@ -64,7 +63,6 @@ pub fn handle_ball_player_collisions(
         };
         let Ok((
             player_team,
-            mut player,
             mut player_ball,
             mut throw_cooldown,
             mut player_body,
@@ -80,7 +78,7 @@ pub fn handle_ball_player_collisions(
             // println!("player hit");
 
             // Player failed to catch it, they are out.
-            player.set_out(
+            Player::knock_out(
                 &mut commands,
                 &team_assets,
                 player_entity,

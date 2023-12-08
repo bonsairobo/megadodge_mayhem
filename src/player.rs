@@ -111,8 +111,7 @@ impl Player {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn set_out(
-        &mut self,
+    pub fn knock_out(
         commands: &mut Commands,
         assets: &AllTeamAssets,
         entity: Entity,

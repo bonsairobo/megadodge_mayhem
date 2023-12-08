@@ -16,6 +16,7 @@ impl SquadUi {
 
     pub fn draw(
         ui: Res<Self>,
+        mut gizmos: Gizmos,
         mut egui: bevy_egui::EguiContexts,
         squad_states: Res<SquadStates>,
         cameras: Query<(&Camera, &GlobalTransform)>,
@@ -55,6 +56,13 @@ impl SquadUi {
             if !ui.show_debug {
                 continue;
             }
+
+            gizmos.circle(
+                state.center_of_mass,
+                Vec3::Y,
+                state.cluster_radius,
+                Color::rgb_u8(255, 255, 255),
+            );
 
             let text = format!(
                 "SQUAD {}\nplayers: {}\nballs: {}% ({})\ncluster: {}%",

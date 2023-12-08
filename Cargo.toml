@@ -64,7 +64,7 @@ features = ["backend_rapier"]
 [dependencies.bevy_rapier3d]
 version = "0.23.0"
 default-features = false
-features = ["dim3", "simd-stable"]
+features = ["dim3", "parallel", "simd-stable"]
 
 [build-dependencies]
 embed-resource = "1.4"

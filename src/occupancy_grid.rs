@@ -28,6 +28,7 @@ impl OccupancyGrid {
         players: Query<&GlobalTransform, (With<Player>, Without<KnockedOut>)>,
     ) {
         grid.players_in_cell.fill(0);
+        grid.players_in_cell.fill_boundary(u8::MAX);
         for tfm in &players {
             let grid_p = grid.position(tfm);
             let cell = grid_p.as_ivec2();

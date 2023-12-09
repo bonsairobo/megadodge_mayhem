@@ -19,6 +19,23 @@ impl<T: Clone> Grid2<T> {
     pub fn fill(&mut self, value: T) {
         self.cells.fill(value);
     }
+
+    pub fn fill_boundary(&mut self, value: T) {
+        for x in 0..self.shape.x as i32 {
+            self[IVec2::new(x, 0)] = value.clone();
+        }
+        for y in 0..self.shape.y as i32 {
+            self[IVec2::new(0, y)] = value.clone();
+        }
+        let max_y = self.max.y;
+        for x in 0..self.shape.x as i32 {
+            self[IVec2::new(x, max_y)] = value.clone();
+        }
+        let max_x = self.max.x;
+        for y in 0..self.shape.y as i32 {
+            self[IVec2::new(max_x, y)] = value.clone();
+        }
+    }
 }
 
 impl<T> Index<IVec2> for Grid2<T> {

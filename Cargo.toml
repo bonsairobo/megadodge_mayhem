@@ -8,9 +8,6 @@ exclude = ["assets", "build", "credits", "dist"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[workspace]
-members = []
-
 [profile.dev.package."*"]
 opt-level = 3
 

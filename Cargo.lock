@@ -2119,7 +2119,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "megadodge_mayhem"
+name = "mega_dodge_mayhem"
 version = "0.1.0"
 dependencies = [
  "bevy",

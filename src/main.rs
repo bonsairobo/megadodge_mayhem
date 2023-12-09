@@ -1,5 +1,5 @@
 use bevy::{asset::AssetMetaCheck, prelude::*, window::PrimaryWindow, winit::WinitWindows};
-use megadodge_mayhem::GamePlugin;
+use mega_dodge_mayhem::GamePlugin;
 use std::io::Cursor;
 use winit::window::Icon;
 

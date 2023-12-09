@@ -1,6 +1,6 @@
 use bevy::prelude::Vec2;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Aabb2 {
     pub min: Vec2,
     pub max: Vec2,
@@ -13,5 +13,9 @@ impl Aabb2 {
 
     pub fn center(&self) -> Vec2 {
         0.5 * (self.min + self.max)
+    }
+
+    pub fn shape(&self) -> Vec2 {
+        self.max - self.min
     }
 }

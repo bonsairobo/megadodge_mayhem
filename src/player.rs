@@ -1,7 +1,7 @@
 mod avoid_players;
 mod knocked_out;
 
-pub use self::avoid_players::AvoidPlayers;
+pub use self::avoid_players::*;
 pub use self::knocked_out::KnockedOut;
 
 use self::knocked_out::DespawnTimer;

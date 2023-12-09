@@ -2,7 +2,9 @@ mod aabb;
 mod ball;
 mod boundaries;
 mod collision;
+mod grid2;
 mod gym;
+mod occupancy_grid;
 mod parameters;
 mod player;
 mod squad;
@@ -21,6 +23,7 @@ use bevy_rapier3d::prelude::*;
 use boundaries::Boundaries;
 use collision::{handle_ball_floor_collisions, handle_ball_player_collisions};
 use gym::{Gym, GymAssets, GymParams};
+use occupancy_grid::OccupancyGrid;
 use player::{AvoidPlayers, KnockedOut, Player};
 use smooth_bevy_cameras::controllers::orbit::{
     OrbitCameraBundle, OrbitCameraController, OrbitCameraPlugin,
@@ -53,6 +56,7 @@ impl Plugin for GamePlugin {
             Update,
             (
                 grab_mouse,
+                OccupancyGrid::update,
                 SquadUi::toggle,
                 SquadUi::draw,
                 SquadAi::move_to_requested_positions,
@@ -116,6 +120,7 @@ fn setup(
     let bounds = Boundaries { min: -he, max: he };
     let player_spawn_aabbs = gym_params.player_spawn_aabbs(8.0);
     let ball_spawn_aabb = gym_params.ball_spawn_aabb(2.0);
+    let occupancy = gym_params.occupancy_grid();
 
     commands
         .spawn(Camera3dBundle {
@@ -205,6 +210,7 @@ fn setup(
 
     commands.insert_resource(ball_assets);
     commands.insert_resource(bounds);
+    commands.insert_resource(occupancy);
     commands.insert_resource(squad_behaviors);
     commands.insert_resource(squad_states);
     commands.insert_resource(team_assets);

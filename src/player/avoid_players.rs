@@ -1,7 +1,6 @@
 use super::{KnockedOut, Player};
-use crate::{collision, parameters::AVOID_RADIUS};
+use crate::occupancy_grid::OccupancyGrid;
 use bevy::prelude::*;
-use bevy_rapier3d::prelude::{Collider, CollisionGroups, QueryFilter, RapierContext};
 
 #[derive(Component, Default)]
 pub struct AvoidPlayers {
@@ -9,40 +8,46 @@ pub struct AvoidPlayers {
 }
 
 impl AvoidPlayers {
-    // PERF: this shows up in traces as being a bit expensive. Not sure how to
-    // improve it though without making players RigidBody::Dynamic, which might
-    // have bad side effects.
+    #[allow(clippy::complexity)]
     pub fn avoid_other_players(
-        rapier_context: Res<RapierContext>,
-        mut avoiders: Query<(&mut Self, &GlobalTransform), Without<KnockedOut>>,
-        player_transforms: Query<&GlobalTransform, (With<Player>, Without<KnockedOut>)>,
+        grid: Res<OccupancyGrid>,
+        mut players: Query<(&mut Self, &GlobalTransform), (With<Player>, Without<KnockedOut>)>,
     ) {
-        avoiders.par_iter_mut().for_each(|(mut avoider, tfm)| {
+        players.par_iter_mut().for_each(|(mut avoider, tfm)| {
+            let grid_p = grid.position(tfm);
+            let cell = grid_p.as_ivec2();
+
+            // TODO: use this?
+            // let in_cell = grid.players_in_cell[cell];
+
+            let mut n_players_nearby = 0u16;
+            let mut center_of_mass = Vec2::ZERO;
+            for [dx, dz] in [
+                [-1, 0],
+                [1, 0],
+                [0, -1],
+                [0, 1],
+                // [-1, -1],
+                // [-1, 1],
+                // [1, -1],
+                // [1, 1],
+            ] {
+                let d = IVec2::from([dx, dz]);
+                let neighbor = cell + d;
+                let n_players = grid.players_in_cell[neighbor];
+                n_players_nearby += u16::from(n_players);
+
+                let neighbor_center = neighbor.as_vec2() + Vec2::splat(0.5);
+                center_of_mass += f32::from(n_players) * (neighbor_center - grid_p);
+
+                // Simpler option that also seems to work.
+                // center_of_mass += f32::from(n_players) * d.as_vec2();
+            }
+
             avoider.nearby_players_mass = Vec3::ZERO;
-            let position = tfm.translation();
-            let select_all_players = QueryFilter::new().groups(CollisionGroups::new(
-                collision::groups::QUERY,
-                collision::groups::PLAYER,
-            ));
-            let mut n_players_nearby = 0;
-            let mut sum_nearby_dist = Vec3::ZERO;
-            rapier_context.intersections_with_shape(
-                position,
-                default(),
-                &Collider::ball(AVOID_RADIUS),
-                select_all_players,
-                |other_player_entity| {
-                    n_players_nearby += 1;
-                    let Ok(other_player_transform) = player_transforms.get(other_player_entity)
-                    else {
-                        return true;
-                    };
-                    sum_nearby_dist += position - other_player_transform.translation();
-                    true
-                },
-            );
             if n_players_nearby > 0 {
-                avoider.nearby_players_mass = sum_nearby_dist / n_players_nearby as f32;
+                avoider.nearby_players_mass =
+                    -Vec3::new(center_of_mass.x, 0.0, center_of_mass.y) / n_players_nearby as f32;
             }
         });
     }

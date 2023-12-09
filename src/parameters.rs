@@ -1,3 +1,5 @@
+use bevy::prelude::Vec2;
+
 /// How much to avoid other players.
 pub const AVOID_FACTOR: f32 = 0.8;
 /// Try to avoid other players in some radius.
@@ -5,6 +7,7 @@ pub const AVOID_RADIUS: f32 = 0.3;
 pub const BLOOM_INTENSITY: f32 = 1.5;
 pub const CHASE_FACTOR: f32 = 0.2;
 pub const DESPAWN_SECONDS: u64 = 5;
+pub const OCCUPANCY_CELL_SIZE: Vec2 = Vec2::splat(AVOID_RADIUS);
 pub const SQUAD_AI_COLLIDER_HEIGHT: f32 = 0.1;
 pub const SQUAD_AI_COLLIDER_RADIUS: f32 = 2.0;
 /// Players per square meter.

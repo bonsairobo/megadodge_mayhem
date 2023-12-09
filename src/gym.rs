@@ -1,4 +1,7 @@
-use crate::{aabb::Aabb2, collision, squad::SquadBehaviors};
+use crate::{
+    aabb::Aabb2, collision, occupancy_grid::OccupancyGrid, parameters::OCCUPANCY_CELL_SIZE,
+    squad::SquadBehaviors,
+};
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
 use bevy_rapier3d::prelude::{Collider, CollisionGroups, RigidBody};
@@ -95,6 +98,11 @@ impl Default for GymParams {
 }
 
 impl GymParams {
+    pub fn aabb2(&self) -> Aabb2 {
+        let he = self.half_extents().xz();
+        Aabb2::new(-he, he)
+    }
+
     pub fn half_extents(&self) -> Vec3 {
         0.5 * self.size
     }
@@ -114,6 +122,12 @@ impl GymParams {
     pub fn ball_spawn_aabb(&self, width: f32) -> Aabb2 {
         let he = self.half_extents();
         Aabb2::new([-he.x, -width].into(), [he.x, width].into())
+    }
+
+    pub fn occupancy_grid(&self) -> OccupancyGrid {
+        assert_eq!(self.size.signum(), Vec3::ONE);
+        println!("AABB = {:?}", self.aabb2());
+        OccupancyGrid::new(OCCUPANCY_CELL_SIZE, self.aabb2())
     }
 }
 

@@ -1,8 +1,7 @@
-use std::ops::Range;
-
 use crate::{
-    aabb::Aabb2,
     collision,
+    geometry::Aabb2,
+    opponent_ai::Bot,
     parameters::{
         BLOOM_INTENSITY, SQUAD_AI_COLLIDER_HEIGHT, SQUAD_AI_COLLIDER_RADIUS, SQUAD_CLUSTER_DENSITY,
     },
@@ -13,6 +12,7 @@ use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
 use bevy_rapier3d::prelude::{Collider, CollisionGroups, Group, QueryFilter, RapierContext};
 use rand::Rng;
+use std::ops::Range;
 
 #[derive(Component)]
 pub struct Squad {
@@ -29,7 +29,6 @@ impl Squad {
         commands: &mut Commands,
         team_assets: &TeamAssets,
         squad_assets: &SquadAssets,
-        pickable: bool,
         team: Team,
         squad: u8,
         aabb: Aabb2,
@@ -58,8 +57,10 @@ impl Squad {
             squad,
             Vec3::new(leader_pos.x, 0.0, leader_pos.y),
         ));
-        if pickable {
+        if team.is_human() {
             commands.insert(SquadAiPickableBundle::new(squad));
+        } else {
+            commands.insert(Bot);
         }
 
         commands.id()
@@ -70,7 +71,6 @@ impl Squad {
         commands: &mut Commands,
         team_assets: &TeamAssets,
         squad_assets: &AllSquadAssets,
-        pickable: bool,
         team: Team,
         squads: Range<u8>,
         aabb: Aabb2,
@@ -88,7 +88,6 @@ impl Squad {
                 commands,
                 team_assets,
                 &squad_assets.squads[squad as usize],
-                pickable,
                 team,
                 squad,
                 aabb,

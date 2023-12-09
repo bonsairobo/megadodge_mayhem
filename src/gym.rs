@@ -1,5 +1,5 @@
 use crate::{
-    aabb::Aabb2, collision, occupancy_grid::OccupancyGrid, parameters::OCCUPANCY_CELL_SIZE,
+    collision, geometry::Aabb2, occupancy_grid::OccupancyGrid, parameters::OCCUPANCY_CELL_SIZE,
     squad::SquadBehaviors,
 };
 use bevy::prelude::*;

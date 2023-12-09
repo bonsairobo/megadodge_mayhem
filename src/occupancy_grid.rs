@@ -1,5 +1,5 @@
 use crate::{
-    aabb::Aabb2,
+    geometry::Aabb2,
     grid2::Grid2,
     player::{KnockedOut, Player},
 };

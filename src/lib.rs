@@ -1,11 +1,12 @@
-mod aabb;
 mod ball;
 mod boundaries;
 mod collision;
 mod game_ui;
+mod geometry;
 mod grid2;
 mod gym;
 mod occupancy_grid;
+mod opponent_ai;
 mod parameters;
 mod player;
 mod restart_game;
@@ -27,6 +28,7 @@ use bevy_rapier3d::prelude::*;
 use collision::{handle_ball_floor_collisions, handle_ball_player_collisions};
 use game_ui::GameUi;
 use occupancy_grid::OccupancyGrid;
+use opponent_ai::control_bot_team;
 use player::{AvoidPlayers, KnockedOut, Player};
 use restart_game::start_game;
 use settings::{GameSettings, SaveSettings};
@@ -36,7 +38,7 @@ use squad::{SquadAi, SquadStates};
 use squad_ui::SquadUi;
 
 // IDEAS
-// - add enemy AI
+// - draw line from center of mass to leader token
 // - add point-buy for squad statistics
 // - make the throw loft adjustable, using a gizmo to show the arc
 // - make players holding balls run to the "front" of their cluster
@@ -89,6 +91,7 @@ impl Plugin for GamePlugin {
                 OccupancyGrid::update,
                 SquadAi::move_to_requested_positions,
                 SquadAi::find_target_enemy,
+                control_bot_team,
             ),
         )
         .add_systems(Update, Player::initialize_kinematics)

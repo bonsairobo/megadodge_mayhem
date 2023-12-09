@@ -1,4 +1,4 @@
-use crate::{aabb::Aabb2, boundaries::Boundaries, collision};
+use crate::{boundaries::Boundaries, collision, geometry::Aabb2};
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 use rand::Rng;

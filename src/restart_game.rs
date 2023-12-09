@@ -4,7 +4,7 @@ use crate::{
     gym::{Gym, GymAssets, GymParams},
     settings::{GameSettings, NextGameConfig},
     squad::{AllSquadAssets, Squad, SquadBehaviors, SquadStates},
-    team::AllTeamAssets,
+    team::{AllTeamAssets, Team},
 };
 use bevy::{
     core_pipeline::bloom::BloomSettings,
@@ -121,7 +121,7 @@ pub fn start_game(
         &team_assets.teams[0],
         &squad_assets,
         true,
-        0,
+        Team::new_human(0),
         0..squads_per_team,
         player_spawn_aabbs[0],
         players_per_squad,
@@ -132,7 +132,7 @@ pub fn start_game(
         &team_assets.teams[1],
         &squad_assets,
         false,
-        1,
+        Team::new_bot(1),
         squads_per_team..2 * squads_per_team,
         player_spawn_aabbs[1],
         players_per_squad,

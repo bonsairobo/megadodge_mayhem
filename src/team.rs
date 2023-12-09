@@ -3,15 +3,30 @@ use bevy::prelude::*;
 #[derive(Copy, Clone, Component)]
 pub struct Team {
     team: u8,
+    is_human: bool,
 }
 
 impl Team {
-    pub fn new(team: u8) -> Self {
-        Self { team }
+    pub fn new_human(team: u8) -> Self {
+        Self {
+            team,
+            is_human: true,
+        }
+    }
+
+    pub fn new_bot(team: u8) -> Self {
+        Self {
+            team,
+            is_human: false,
+        }
     }
 
     pub fn team(&self) -> u8 {
         self.team
+    }
+
+    pub fn is_human(&self) -> bool {
+        self.is_human
     }
 }
 

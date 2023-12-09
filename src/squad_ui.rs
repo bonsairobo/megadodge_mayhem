@@ -1,4 +1,7 @@
-use crate::squad::{Squad, SquadAi, SquadStates};
+use crate::{
+    squad::{Squad, SquadAi, SquadStates},
+    team::Team,
+};
 use bevy::prelude::*;
 use bevy_egui::{
     egui::{self, Color32},
@@ -23,7 +26,7 @@ impl SquadUi {
         mut egui: EguiContexts,
         squad_states: Res<SquadStates>,
         cameras: Query<(&Camera, &GlobalTransform)>,
-        squad_ais: Query<(&Squad, &GlobalTransform), With<SquadAi>>,
+        squad_ais: Query<(&Team, &Squad, &GlobalTransform), With<SquadAi>>,
     ) {
         let ctx = egui.ctx_mut();
         let (camera, camera_tfm) = cameras.single();
@@ -34,7 +37,7 @@ impl SquadUi {
         let transparent_white = Color32::from_rgba_unmultiplied(255, 255, 255, 64);
         let stroke = egui::Stroke::new(3.0, transparent_white);
 
-        for (squad, tfm) in &squad_ais {
+        for (team, squad, tfm) in &squad_ais {
             let to_egui_pos = |v: Vec2| egui::pos2(v.x, v.y);
             let dbg_painter = ctx.layer_painter(egui::LayerId::background());
 
@@ -49,12 +52,14 @@ impl SquadUi {
                 continue;
             }
 
-            dbg_painter.circle(
-                to_egui_pos(ai_window_pos),
-                10.0,
-                Color32::from_rgba_unmultiplied(255, 255, 255, 32),
-                stroke,
-            );
+            if team.is_human() {
+                dbg_painter.circle(
+                    to_egui_pos(ai_window_pos),
+                    10.0,
+                    Color32::from_rgba_unmultiplied(255, 255, 255, 32),
+                    stroke,
+                );
+            }
 
             if !ui.show_debug {
                 continue;

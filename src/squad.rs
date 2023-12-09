@@ -30,7 +30,7 @@ impl Squad {
         team_assets: &TeamAssets,
         squad_assets: &SquadAssets,
         pickable: bool,
-        team: u8,
+        team: Team,
         squad: u8,
         aabb: Aabb2,
         leader_pos: Vec2,
@@ -71,7 +71,7 @@ impl Squad {
         team_assets: &TeamAssets,
         squad_assets: &AllSquadAssets,
         pickable: bool,
-        team: u8,
+        team: Team,
         squads: Range<u8>,
         aabb: Aabb2,
         players_per_squad: u32,
@@ -446,10 +446,10 @@ pub struct SquadAiBundle {
 }
 
 impl SquadAiBundle {
-    fn new(team: u8, squad: u8, position: Vec3) -> Self {
+    fn new(team: Team, squad: u8, position: Vec3) -> Self {
         Self {
             ai: SquadAi,
-            team: Team::new(team),
+            team,
             squad: Squad::new(squad),
             transform: TransformBundle {
                 local: Transform::from_translation(position),

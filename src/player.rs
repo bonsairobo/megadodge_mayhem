@@ -54,7 +54,7 @@ impl PlayerBundle {
     pub fn new(
         team_assets: &TeamAssets,
         squad_assets: &SquadAssets,
-        team: u8,
+        team: Team,
         squad: u8,
         position: Vec3,
     ) -> Self {
@@ -79,7 +79,7 @@ impl PlayerBundle {
                 ..default()
             },
             squad: Squad::new(squad),
-            team: Team::new(team),
+            team,
             throw_cooldown: ThrowCooldown::new(),
             velocity: Velocity::zero(),
         }

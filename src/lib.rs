@@ -36,8 +36,8 @@ use squad::{SquadAi, SquadStates};
 use squad_ui::SquadUi;
 
 // IDEAS
-// - add point-buy for squad statistics
 // - add enemy AI
+// - add point-buy for squad statistics
 // - make the throw loft adjustable, using a gizmo to show the arc
 // - make players holding balls run to the "front" of their cluster
 // - let players holding balls run closer to the current target enemy if they're

@@ -63,14 +63,14 @@ impl GameUi {
                 });
                 ui.separator();
                 ui.add(
-                    egui::Slider::new(&mut settings.next_game.players_per_squad, 0..=1000)
+                    egui::Slider::new(&mut settings.next_game.players_per_squad, 1..=5000)
                         .text("Players Per Squad"),
                 );
                 ui.add(
-                    egui::Slider::new(&mut settings.next_game.squads_per_team, 0..=5)
+                    egui::Slider::new(&mut settings.next_game.squads_per_team, 1..=5)
                         .text("Squads Per Team"),
                 );
-                ui.add(egui::Slider::new(&mut settings.next_game.n_balls, 0..=1000).text("Balls"));
+                ui.add(egui::Slider::new(&mut settings.next_game.n_balls, 0..=2000).text("Balls"));
                 ui.separator();
 
                 ui.collapsing("Controls", |ui| {

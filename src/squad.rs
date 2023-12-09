@@ -29,6 +29,7 @@ impl Squad {
         commands: &mut Commands,
         team_assets: &TeamAssets,
         squad_assets: &SquadAssets,
+        pickable: bool,
         team: u8,
         squad: u8,
         aabb: Aabb2,
@@ -52,13 +53,16 @@ impl Squad {
             ));
         }
 
-        commands
-            .spawn(SquadAiBundle::new(
-                team,
-                squad,
-                Vec3::new(leader_pos.x, 0.0, leader_pos.y),
-            ))
-            .id()
+        let mut commands = commands.spawn(SquadAiBundle::new(
+            team,
+            squad,
+            Vec3::new(leader_pos.x, 0.0, leader_pos.y),
+        ));
+        if pickable {
+            commands.insert(SquadAiPickableBundle::new(squad));
+        }
+
+        commands.id()
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -66,6 +70,7 @@ impl Squad {
         commands: &mut Commands,
         team_assets: &TeamAssets,
         squad_assets: &AllSquadAssets,
+        pickable: bool,
         team: u8,
         squads: Range<u8>,
         aabb: Aabb2,
@@ -83,6 +88,7 @@ impl Squad {
                 commands,
                 team_assets,
                 &squad_assets.squads[squad as usize],
+                pickable,
                 team,
                 squad,
                 aabb,
@@ -436,14 +442,7 @@ pub struct SquadAiBundle {
     pub team: Team,
     pub squad: Squad,
     pub transform: TransformBundle,
-    // For selection.
-    pub rapier_pickable: RapierPickable,
-    pub pickable: Pickable,
-    pub collider: Collider,
     pub collision_groups: CollisionGroups,
-    pub on_click: On<Pointer<Click>>,
-    pub on_over: On<Pointer<Over>>,
-    pub on_out: On<Pointer<Out>>,
 }
 
 impl SquadAiBundle {
@@ -456,6 +455,26 @@ impl SquadAiBundle {
                 local: Transform::from_translation(position),
                 ..default()
             },
+            // I'm a little surprised that picking still works with these
+            // collision filters, but I'm not complaining.
+            collision_groups: CollisionGroups::new(Group::NONE, Group::NONE),
+        }
+    }
+}
+
+#[derive(Bundle)]
+pub struct SquadAiPickableBundle {
+    pub rapier_pickable: RapierPickable,
+    pub pickable: Pickable,
+    pub collider: Collider,
+    pub on_click: On<Pointer<Click>>,
+    pub on_over: On<Pointer<Over>>,
+    pub on_out: On<Pointer<Out>>,
+}
+
+impl SquadAiPickableBundle {
+    pub fn new(squad: u8) -> Self {
+        Self {
             rapier_pickable: RapierPickable,
             pickable: Pickable {
                 // BUG: not working?
@@ -464,9 +483,6 @@ impl SquadAiBundle {
             },
             // The radius will update as the squad cluster radius changes.
             collider: Collider::cylinder(squad_collider_height(squad), 1.0),
-            // I'm a little surprised that picking still works with these
-            // collision filters, but I'm not complaining.
-            collision_groups: CollisionGroups::new(Group::NONE, Group::NONE),
             on_click: On::<Pointer<Click>>::run(SquadAi::select_squad),
             on_over: On::<Pointer<Over>>::run(SquadAi::highlight_squad),
             on_out: On::<Pointer<Out>>::run(SquadAi::unhighlight_squad),

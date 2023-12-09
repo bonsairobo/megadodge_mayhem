@@ -33,6 +33,19 @@ use squad::{AllSquadAssets, Squad, SquadAi, SquadBehaviors, SquadStates};
 use squad_ui::SquadUi;
 use team::AllTeamAssets;
 
+// IDEAS
+// - add point-buy for squad statistics
+// - add game start menu with configurable parameters
+// - add enemy AI
+// - make the throw loft adjustable, using a gizmo to show the arc
+// - make players holding balls run to the "front" of their cluster
+// - let players holding balls run closer to the current target enemy if they're
+//   out of range
+// - let players leave their cluster to quickly grab a nearby ball
+// - let players block incoming thrown balls if they are holding a ball
+// - make the cluster shape adjustable
+// - let players dodge out of the way of thrown balls
+
 pub struct GamePlugin;
 
 impl Plugin for GamePlugin {

@@ -11,7 +11,7 @@ pub const OCCUPANCY_CELL_SIZE: Vec2 = Vec2::splat(AVOID_RADIUS);
 pub const SQUAD_AI_COLLIDER_HEIGHT: f32 = 0.1;
 pub const SQUAD_AI_COLLIDER_RADIUS: f32 = 2.0;
 /// Players per square meter.
-pub const SQUAD_CLUSTER_DENSITY: f32 = 4.0;
+pub const SQUAD_CLUSTER_DENSITY: f32 = 3.0;
 /// How far a thrown ball travels upwards on its trajectory.
 ///
 /// This should be nonzero to avoid friendly fire.

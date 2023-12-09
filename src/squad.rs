@@ -231,7 +231,11 @@ impl SquadStates {
         >,
     ) {
         for state in &mut states.squads {
-            state.clear();
+            // Reset counters that we use below.
+            state.num_players = 0;
+            state.num_players_in_cluster = 0;
+            state.num_holding_balls = 0;
+            state.center_of_mass = Vec3::ZERO;
         }
 
         // Squad accounting.
@@ -301,10 +305,6 @@ impl SquadState {
         // area = players / density
         // radius^2 = (players / density) / PI
         self.cluster_radius = ((self.num_players as f32 / density) / std::f32::consts::PI).sqrt();
-    }
-
-    fn clear(&mut self) {
-        *self = default();
     }
 }
 

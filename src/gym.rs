@@ -126,7 +126,6 @@ impl GymParams {
 
     pub fn occupancy_grid(&self) -> OccupancyGrid {
         assert_eq!(self.size.signum(), Vec3::ONE);
-        println!("AABB = {:?}", self.aabb2());
         OccupancyGrid::new(OCCUPANCY_CELL_SIZE, self.aabb2())
     }
 }

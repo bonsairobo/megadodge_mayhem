@@ -30,6 +30,8 @@ dev = [
 
 [dependencies]
 rand = "0.8.5"
+ron = "0.8.1"
+serde = "1"
 smooth-bevy-cameras = "0.10.0"
 webbrowser = { version = "0.8", features = ["hardened"] }
 
@@ -57,6 +59,9 @@ features = [
 version = "0.17.0"
 default-features = false
 features = ["backend_rapier"]
+
+[dependencies.bevy_pkv]
+version = "0.9.0"
 
 [dependencies.bevy_rapier3d]
 version = "0.23.0"

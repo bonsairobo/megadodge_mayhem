@@ -1,6 +1,9 @@
 use crate::squad::{Squad, SquadAi, SquadStates};
 use bevy::prelude::*;
-use bevy_egui::egui::{self, Color32};
+use bevy_egui::{
+    egui::{self, Color32},
+    EguiContexts,
+};
 
 #[derive(Default, Resource)]
 pub struct SquadUi {
@@ -17,7 +20,7 @@ impl SquadUi {
     pub fn draw(
         ui: Res<Self>,
         mut gizmos: Gizmos,
-        mut egui: bevy_egui::EguiContexts,
+        mut egui: EguiContexts,
         squad_states: Res<SquadStates>,
         cameras: Query<(&Camera, &GlobalTransform)>,
         squad_ais: Query<(&Squad, &GlobalTransform), With<SquadAi>>,
@@ -33,7 +36,7 @@ impl SquadUi {
 
         for (squad, tfm) in &squad_ais {
             let to_egui_pos = |v: Vec2| egui::pos2(v.x, v.y);
-            let dbg_painter = ctx.layer_painter(egui::LayerId::debug());
+            let dbg_painter = ctx.layer_painter(egui::LayerId::background());
 
             let ai_pos = tfm.translation();
             let Some(ai_viewport_pos) = camera.world_to_viewport(camera_tfm, ai_pos) else {

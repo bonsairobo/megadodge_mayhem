@@ -2,40 +2,41 @@ mod aabb;
 mod ball;
 mod boundaries;
 mod collision;
+mod game_ui;
 mod grid2;
 mod gym;
 mod occupancy_grid;
 mod parameters;
 mod player;
+mod restart_game;
+mod settings;
 mod squad;
 mod squad_ui;
 mod team;
 
-use ball::{Ball, BallAssets};
-use bevy::core_pipeline::bloom::BloomSettings;
 use bevy::prelude::*;
 use bevy::render::view::NoFrustumCulling;
 use bevy::window::CursorGrabMode;
-use bevy_egui::EguiPlugin;
+use bevy_egui::egui;
+use bevy_egui::egui::Color32;
+use bevy_egui::{EguiContexts, EguiPlugin};
 use bevy_mod_picking::prelude::*;
 use bevy_mod_picking::DefaultPickingPlugins;
+use bevy_pkv::PkvStore;
 use bevy_rapier3d::prelude::*;
-use boundaries::Boundaries;
 use collision::{handle_ball_floor_collisions, handle_ball_player_collisions};
-use gym::{Gym, GymAssets, GymParams};
+use game_ui::GameUi;
 use occupancy_grid::OccupancyGrid;
 use player::{AvoidPlayers, KnockedOut, Player};
-use smooth_bevy_cameras::controllers::orbit::{
-    OrbitCameraBundle, OrbitCameraController, OrbitCameraPlugin,
-};
+use restart_game::start_game;
+use settings::GameSettings;
+use smooth_bevy_cameras::controllers::orbit::OrbitCameraPlugin;
 use smooth_bevy_cameras::LookTransformPlugin;
-use squad::{AllSquadAssets, Squad, SquadAi, SquadBehaviors, SquadStates};
+use squad::{SquadAi, SquadStates};
 use squad_ui::SquadUi;
-use team::AllTeamAssets;
 
 // IDEAS
 // - add point-buy for squad statistics
-// - add game start menu with configurable parameters
 // - add enemy AI
 // - make the throw loft adjustable, using a gizmo to show the arc
 // - make players holding balls run to the "front" of their cluster
@@ -58,20 +59,33 @@ impl Plugin for GamePlugin {
             LookTransformPlugin,
             OrbitCameraPlugin::default(),
         ))
+        .insert_resource(PkvStore::new("bonsairobo", "MegaDodgeMayhem"))
         .insert_resource(ClearColor(Color::rgb_u8(52, 75, 99)))
         .insert_resource(RapierBackendSettings {
             require_markers: true,
         })
+        .init_resource::<GameSettings>()
+        .init_resource::<GameUi>()
         .init_resource::<SquadUi>()
-        .add_systems(Startup, (setup, transparency_hack))
+        .add_systems(
+            Startup,
+            (
+                GameSettings::load,
+                start_game.after(GameSettings::load),
+                transparency_hack,
+                configure_egui_visuals,
+            ),
+        )
         .add_systems(PreUpdate, emulate_right_click_with_alt)
         .add_systems(
             Update,
             (
                 grab_mouse,
-                OccupancyGrid::update,
+                GameUi::update,
+                GameUi::toggle,
                 SquadUi::toggle,
                 SquadUi::draw,
+                OccupancyGrid::update,
                 SquadAi::move_to_requested_positions,
                 SquadAi::find_target_enemy,
             ),
@@ -91,7 +105,8 @@ impl Plugin for GamePlugin {
                 .before(Player::finalize_kinematics),
         )
         .add_systems(Update, Player::finalize_kinematics)
-        .add_systems(PostUpdate, SquadStates::update);
+        .add_systems(PostUpdate, SquadStates::update)
+        .add_systems(Last, GameSettings::save_on_app_exit);
     }
 }
 
@@ -121,120 +136,12 @@ fn grab_mouse(
     }
 }
 
-fn setup(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-) {
-    let gym_params = GymParams::default();
-    let he = gym_params.half_extents();
-    let gym_assets = GymAssets::new(gym_params, &mut meshes, &mut materials);
-    Gym::spawn(&mut commands, &gym_assets);
-    let bounds = Boundaries { min: -he, max: he };
-    let player_spawn_aabbs = gym_params.player_spawn_aabbs(16.0);
-    let ball_spawn_aabb = gym_params.ball_spawn_aabb(4.0);
-    let occupancy = gym_params.occupancy_grid();
-
-    commands
-        .spawn(Camera3dBundle {
-            camera: Camera {
-                // Required for bloom.
-                hdr: true,
-                ..default()
-            },
-            ..default()
-        })
-        .insert((
-            BloomSettings::default(),
-            OrbitCameraBundle::new(
-                OrbitCameraController {
-                    mouse_rotate_sensitivity: Vec2::splat(0.3),
-                    mouse_translate_sensitivity: Vec2::splat(4.0),
-                    mouse_wheel_zoom_sensitivity: 0.2,
-                    pixels_per_line: 53.0,
-                    smoothing_weight: 0.8,
-                    ..default()
-                },
-                Vec3::new(50.0, 50.0, 0.0),
-                Vec3::ZERO,
-                Vec3::Y,
-            ),
-            RapierPickable,
-        ));
-
-    // TODO: animated spotlights could look really cool
-    let hhe = 0.5 * he;
-    let light_positions = [
-        Vec3::new(0.0, 5.0, 0.0),
-        Vec3::new(-hhe.x, 5.0, -hhe.z),
-        Vec3::new(hhe.x, 5.0, -hhe.z),
-        Vec3::new(-hhe.x, 5.0, hhe.z),
-        Vec3::new(hhe.x, 5.0, hhe.z),
-    ];
-    for light_position in light_positions {
-        commands.spawn(PointLightBundle {
-            point_light: PointLight {
-                intensity: 2000.0,
-                range: 50.0,
-                shadows_enabled: true,
-                ..default()
-            },
-            transform: Transform::from_translation(light_position),
-            ..default()
-        });
-    }
-
-    let ball_assets = BallAssets::new(&mut meshes, &mut materials);
-    let n_balls = 1000;
-    Ball::spawn_multiple_in_aabb(
-        &mut commands,
-        &ball_assets,
-        &bounds,
-        ball_spawn_aabb,
-        n_balls,
-    );
-
-    let team_colors = [Color::GREEN, Color::BLUE];
-    let squad_teams = [0, 0, 0, 0, 1, 1, 1, 1];
-    let n_squads = squad_teams.len();
-    let squad_size = 750;
-
-    let squad_colors = squad_teams.map(|t| team_colors[t as usize]);
-    let team_assets = AllTeamAssets::new(team_colors, &mut meshes, &mut materials);
-    let squad_assets = AllSquadAssets::new(squad_colors, &mut materials);
-
-    let mut squad_ai_entities = Vec::new();
-    Squad::spawn_in_line(
-        &mut commands,
-        &team_assets.teams[0],
-        &squad_assets,
-        0,
-        0..4,
-        player_spawn_aabbs[0],
-        squad_size,
-        &mut squad_ai_entities,
-    );
-    Squad::spawn_in_line(
-        &mut commands,
-        &team_assets.teams[1],
-        &squad_assets,
-        1,
-        4..8,
-        player_spawn_aabbs[1],
-        squad_size,
-        &mut squad_ai_entities,
-    );
-
-    let squad_behaviors = SquadBehaviors::new(squad_ai_entities);
-    let squad_states = SquadStates::new(vec![squad_size; n_squads]);
-
-    commands.insert_resource(ball_assets);
-    commands.insert_resource(bounds);
-    commands.insert_resource(occupancy);
-    commands.insert_resource(squad_behaviors);
-    commands.insert_resource(squad_states);
-    commands.insert_resource(team_assets);
-    commands.insert_resource(squad_assets);
+fn configure_egui_visuals(mut contexts: EguiContexts) {
+    contexts.ctx_mut().set_visuals(egui::Visuals {
+        window_rounding: 0.0.into(),
+        faint_bg_color: Color32::from_gray(50),
+        ..Default::default()
+    });
 }
 
 // HACK: front-load a stutter that occurs the first time a transparent material

@@ -30,7 +30,6 @@ dev = [
 
 [dependencies]
 rand = "0.8.5"
-ron = "0.8.1"
 serde = "1"
 smooth-bevy-cameras = "0.10.0"
 webbrowser = { version = "0.8", features = ["hardened"] }

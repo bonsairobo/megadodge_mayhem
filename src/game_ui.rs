@@ -132,9 +132,7 @@ impl GameUi {
 
         if cam_changed {
             if let Ok(mut cam) = cameras.get_single_mut() {
-                cam.mouse_rotate_sensitivity = Vec2::splat(settings.rotate_sensitivity);
-                cam.mouse_translate_sensitivity = Vec2::splat(settings.translate_sensitivity);
-                cam.mouse_wheel_zoom_sensitivity = settings.zoom_sensitivity;
+                settings.apply_to_camera(&mut cam);
             };
         }
     }

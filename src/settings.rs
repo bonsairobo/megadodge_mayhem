@@ -1,6 +1,7 @@
 use bevy::{app::AppExit, prelude::*};
 use bevy_pkv::PkvStore;
 use serde::{Deserialize, Serialize};
+use smooth_bevy_cameras::controllers::orbit::OrbitCameraController;
 
 #[derive(Deserialize, Resource, Serialize)]
 pub struct GameSettings {
@@ -43,6 +44,20 @@ impl GameSettings {
                 println!("Failed to save settings: {e}");
             }
         }
+    }
+
+    pub fn apply_to_camera(&self, cam: &mut OrbitCameraController) {
+        cam.mouse_rotate_sensitivity = Vec2::splat(self.rotate_sensitivity);
+        cam.mouse_translate_sensitivity = Vec2::splat(self.translate_sensitivity);
+        cam.mouse_wheel_zoom_sensitivity = self.zoom_sensitivity;
+        // WASM uses a totally different type of scrolling unit.
+        cam.pixels_per_line = 10_000.0 * self.zoom_sensitivity;
+    }
+
+    pub fn make_camera(&self) -> OrbitCameraController {
+        let mut cam = default();
+        self.apply_to_camera(&mut cam);
+        cam
     }
 }
 

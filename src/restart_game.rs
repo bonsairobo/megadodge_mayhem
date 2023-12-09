@@ -12,7 +12,7 @@ use bevy::{
     prelude::*,
 };
 use bevy_mod_picking::prelude::RapierPickable;
-use smooth_bevy_cameras::controllers::orbit::{OrbitCameraBundle, OrbitCameraController};
+use smooth_bevy_cameras::controllers::orbit::OrbitCameraBundle;
 
 pub struct RestartGame;
 
@@ -56,11 +56,7 @@ pub fn start_game(
         .insert((
             BloomSettings::default(),
             OrbitCameraBundle::new(
-                OrbitCameraController {
-                    mouse_translate_sensitivity: Vec2::splat(settings.translate_sensitivity),
-                    mouse_rotate_sensitivity: Vec2::splat(settings.rotate_sensitivity),
-                    ..default()
-                },
+                settings.make_camera(),
                 Vec3::new(100.0, 100.0, 0.0),
                 Vec3::ZERO,
                 Vec3::Y,

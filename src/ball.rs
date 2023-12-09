@@ -149,7 +149,7 @@ impl Ball {
         ball_assets: &BallAssets,
         bounds: &Boundaries,
         aabb: Aabb2,
-        n_balls: usize,
+        n_balls: u32,
     ) {
         let mut rng = rand::thread_rng();
         for _ in 0..n_balls {

@@ -2,7 +2,7 @@ use crate::{
     ball::{Ball, BallAssets},
     boundaries::Boundaries,
     gym::{Gym, GymAssets, GymParams},
-    settings::GameSettings,
+    settings::{GameSettings, NextGameConfig},
     squad::{AllSquadAssets, Squad, SquadBehaviors, SquadStates},
     team::AllTeamAssets,
 };
@@ -61,7 +61,7 @@ pub fn start_game(
                     mouse_rotate_sensitivity: Vec2::splat(settings.rotate_sensitivity),
                     ..default()
                 },
-                Vec3::new(50.0, 50.0, 0.0),
+                Vec3::new(100.0, 100.0, 0.0),
                 Vec3::ZERO,
                 Vec3::Y,
             ),
@@ -90,8 +90,13 @@ pub fn start_game(
         });
     }
 
+    let NextGameConfig {
+        squads_per_team,
+        players_per_squad,
+        n_balls,
+    } = settings.next_game;
+
     let ball_assets = BallAssets::new(&mut meshes, &mut materials);
-    let n_balls = 1000;
     Ball::spawn_multiple_in_aabb(
         &mut commands,
         &ball_assets,
@@ -101,11 +106,16 @@ pub fn start_game(
     );
 
     let team_colors = [Color::GREEN, Color::BLUE];
-    let squad_teams = [0, 0, 0, 0, 1, 1, 1, 1];
+    let squad_teams: Vec<_> = std::iter::repeat(0u8)
+        .take(usize::from(squads_per_team))
+        .chain(std::iter::repeat(1).take(usize::from(squads_per_team)))
+        .collect();
     let n_squads = squad_teams.len();
-    let squad_size = 750;
 
-    let squad_colors = squad_teams.map(|t| team_colors[t as usize]);
+    let squad_colors: Vec<_> = squad_teams
+        .iter()
+        .map(|&t| team_colors[t as usize])
+        .collect();
     let team_assets = AllTeamAssets::new(team_colors, &mut meshes, &mut materials);
     let squad_assets = AllSquadAssets::new(squad_colors, &mut materials);
 
@@ -115,9 +125,9 @@ pub fn start_game(
         &team_assets.teams[0],
         &squad_assets,
         0,
-        0..4,
+        0..squads_per_team,
         player_spawn_aabbs[0],
-        squad_size,
+        players_per_squad,
         &mut squad_ai_entities,
     );
     Squad::spawn_in_line(
@@ -125,14 +135,14 @@ pub fn start_game(
         &team_assets.teams[1],
         &squad_assets,
         1,
-        4..8,
+        squads_per_team..2 * squads_per_team,
         player_spawn_aabbs[1],
-        squad_size,
+        players_per_squad,
         &mut squad_ai_entities,
     );
 
     let squad_behaviors = SquadBehaviors::new(squad_ai_entities);
-    let squad_states = SquadStates::new(vec![squad_size; n_squads]);
+    let squad_states = SquadStates::new(vec![players_per_squad; n_squads]);
 
     commands.insert_resource(ball_assets);
     commands.insert_resource(bounds);

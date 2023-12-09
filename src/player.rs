@@ -272,18 +272,10 @@ impl Player {
 
             if !throw_cooldown.timer.finished() {
                 throw_cooldown.timer.tick(time.delta());
-                // TODO: we could let the player still try to position for a throw
-                // while the cooldown is ticking, but we want something smarter than
-                // running straight at the enemy
                 continue;
             }
 
             let squad_state = &states.squads[player_squad.squad as usize];
-
-            // Make sure the player is in a good position to throw at the
-            // other team or block incoming balls. There is a very low
-            // probability of catching an incoming ball.
-            // TODO
 
             let Some(throw_target) = squad_state.throw_target else {
                 // No players!

@@ -29,7 +29,7 @@ use game_ui::GameUi;
 use occupancy_grid::OccupancyGrid;
 use player::{AvoidPlayers, KnockedOut, Player};
 use restart_game::start_game;
-use settings::GameSettings;
+use settings::{GameSettings, SaveSettings};
 use smooth_bevy_cameras::controllers::orbit::OrbitCameraPlugin;
 use smooth_bevy_cameras::LookTransformPlugin;
 use squad::{SquadAi, SquadStates};
@@ -59,6 +59,7 @@ impl Plugin for GamePlugin {
             LookTransformPlugin,
             OrbitCameraPlugin::default(),
         ))
+        .add_event::<SaveSettings>()
         .insert_resource(PkvStore::new("bonsairobo", "MegaDodgeMayhem"))
         .insert_resource(ClearColor(Color::rgb_u8(52, 75, 99)))
         .insert_resource(RapierBackendSettings {
@@ -106,7 +107,7 @@ impl Plugin for GamePlugin {
         )
         .add_systems(Update, Player::finalize_kinematics)
         .add_systems(PostUpdate, SquadStates::update)
-        .add_systems(Last, GameSettings::save_on_app_exit);
+        .add_systems(Last, GameSettings::save_on_exit_or_request);
     }
 }
 

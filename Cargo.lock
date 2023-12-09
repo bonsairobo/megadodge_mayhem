@@ -702,9 +702,11 @@ dependencies = [
  "bevy_app",
  "bevy_core",
  "bevy_ecs",
+ "bevy_egui",
  "bevy_eventlistener",
  "bevy_math",
  "bevy_picking_core",
+ "bevy_picking_egui",
  "bevy_picking_input",
  "bevy_picking_rapier",
  "bevy_rapier3d",
@@ -758,6 +760,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_picking_egui"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9932cc0ea29aff4f7aa7b5127c04afaeccd6ac41ed069bedd4c85dd0d9afcd3f"
+dependencies = [
+ "bevy_app",
+ "bevy_ecs",
+ "bevy_egui",
+ "bevy_picking_core",
+ "bevy_picking_selection",
+ "bevy_reflect",
+ "bevy_render",
+]
+
+[[package]]
 name = "bevy_picking_input"
 version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -791,6 +808,21 @@ dependencies = [
  "bevy_transform",
  "bevy_utils",
  "bevy_window",
+]
+
+[[package]]
+name = "bevy_picking_selection"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "814c784c957653ab0baf77ff5563a90d4150f704ba0a173f9de8abe3037f803c"
+dependencies = [
+ "bevy_app",
+ "bevy_ecs",
+ "bevy_eventlistener",
+ "bevy_input",
+ "bevy_picking_core",
+ "bevy_reflect",
+ "bevy_utils",
 ]
 
 [[package]]
@@ -2186,7 +2218,6 @@ dependencies = [
  "embed-resource",
  "image",
  "rand",
- "ron",
  "serde",
  "smooth-bevy-cameras",
  "webbrowser",

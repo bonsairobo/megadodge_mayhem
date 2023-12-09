@@ -31,12 +31,13 @@ impl GameSettings {
     }
 
     /// Must run in `Last` schedule.
-    pub fn save_on_app_exit(
+    pub fn save_on_exit_or_request(
         mut exit: EventReader<AppExit>,
+        mut request: EventReader<SaveSettings>,
         settings: Res<Self>,
         mut pkv: ResMut<PkvStore>,
     ) {
-        for _ in exit.read() {
+        if exit.read().count() > 0 || request.read().count() > 0 {
             info!("Saving settings");
             if let Err(e) = pkv.set("settings", &*settings) {
                 println!("Failed to save settings: {e}");
@@ -61,3 +62,6 @@ impl Default for NextGameConfig {
         }
     }
 }
+
+#[derive(Event)]
+pub struct SaveSettings;

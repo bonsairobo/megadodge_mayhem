@@ -37,7 +37,6 @@ webbrowser = { version = "0.8", features = ["hardened"] }
 # keep the following in sync with Bevy's dependencies
 winit = { version = "0.28.7", default-features = false }
 image = { version = "0.24", default-features = false }
-bevy_egui = "0.23.0"
 
 [dependencies.bevy]
 version = "0.12.0"
@@ -54,10 +53,13 @@ features = [
   "x11",
 ]
 
+[dependencies.bevy_egui]
+version = "0.23.0"
+
 [dependencies.bevy_mod_picking]
 version = "0.17.0"
 default-features = false
-features = ["backend_rapier"]
+features = ["backend_egui", "backend_rapier"]
 
 [dependencies.bevy_pkv]
 version = "0.9.0"
@@ -65,7 +67,12 @@ version = "0.9.0"
 [dependencies.bevy_rapier3d]
 version = "0.23.0"
 default-features = false
-features = ["dim3", "parallel", "simd-stable"]
+features = ["dim3", "simd-stable"]
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies.bevy_rapier3d]
+version = "0.23.0"
+default-features = false
+features = ["parallel"]
 
 [build-dependencies]
 embed-resource = "1.4"

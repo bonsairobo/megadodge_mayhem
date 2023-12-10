@@ -58,7 +58,7 @@ impl SquadUi {
             }
 
             if team.is_human() {
-                gizmos.line(state.center_of_mass, tfm.translation(), Color::PINK);
+                gizmos.line(state.center_of_mass, tfm.translation(), Color::WHITE);
                 dbg_painter.circle(
                     to_egui_pos(ai_window_pos),
                     10.0,

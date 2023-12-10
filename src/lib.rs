@@ -80,6 +80,8 @@ impl Plugin for GamePlugin {
             ),
         )
         .add_systems(PreUpdate, emulate_right_click_with_alt)
+        // Needs to be PreUpdate so AI can use correct SquadState values
+        .add_systems(PreUpdate, SquadStates::update)
         .add_systems(
             Update,
             (
@@ -109,7 +111,6 @@ impl Plugin for GamePlugin {
                 .before(Player::finalize_kinematics),
         )
         .add_systems(Update, Player::finalize_kinematics)
-        .add_systems(PostUpdate, SquadStates::update)
         .add_systems(Last, GameSettings::save_on_exit_or_request);
     }
 }

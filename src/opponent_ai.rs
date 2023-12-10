@@ -45,7 +45,11 @@ pub fn control_bot_team(
             // We aren't scared. Let's go on the attack.
             if let Some((_target_squad, target_squad_pos)) = threats.vulnerable {
                 let behavior = &mut behaviors.squads[squad.squad as usize];
-                behavior.leader_position = Some(target_squad_pos.xz());
+                let target_dist = target_squad_pos.distance(pos);
+                let throw_dist = (behavior.stats.throw_distance - state.cluster_radius).max(0.0);
+                let ratio = throw_dist / target_dist;
+                let throw_pos = ratio * pos + (1.0 - ratio) * target_squad_pos;
+                behavior.leader_position = Some(throw_pos.xz());
             } else {
                 // TODO
                 // let ball_pos = find_balls();

@@ -39,6 +39,7 @@ use squad::{SquadAi, SquadStates};
 use squad_ui::SquadUi;
 
 // IDEAS
+// - multi-step squad paths
 // - neutral zones; don't let players into other team's spawn zone
 // - add point-buy for squad statistics
 // - make the throw loft adjustable, using a gizmo to show the arc

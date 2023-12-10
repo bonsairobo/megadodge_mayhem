@@ -6,6 +6,7 @@ use crate::{
         BLOOM_INTENSITY, SQUAD_AI_COLLIDER_HEIGHT, SQUAD_AI_COLLIDER_RADIUS, SQUAD_CLUSTER_DENSITY,
     },
     player::{KnockedOut, Player, PlayerBall, PlayerBundle},
+    settings::{GameConfig, GameMode},
     team::{AllTeamAssets, Team, TeamAssets},
 };
 use bevy::prelude::*;
@@ -226,7 +227,9 @@ impl SquadStates {
 
     #[allow(clippy::complexity)]
     pub fn update(
+        mut commands: Commands,
         mut states: ResMut<Self>,
+        config: Res<GameConfig>,
         behaviors: Res<SquadBehaviors>,
         mut squad_ai_colliders: Query<&mut Collider, With<SquadAi>>,
         squad_ais: Query<&GlobalTransform, With<SquadAi>>,
@@ -234,6 +237,7 @@ impl SquadStates {
             (&Squad, &GlobalTransform, &PlayerBall),
             (With<Player>, Without<KnockedOut>),
         >,
+        human_squad_ais: Query<(), (With<SquadAi>, Without<Bot>)>,
     ) {
         for state in &mut states.squads {
             // Reset counters that we use below.
@@ -264,10 +268,36 @@ impl SquadStates {
             }
         }
         for state in &mut states.squads {
-            state.center_of_mass /= state.num_players as f32;
+            if state.num_players > 0 {
+                state.center_of_mass /= state.num_players as f32;
+            }
         }
 
         for ((squad, state), behavior) in (0..).zip(&mut states.squads).zip(&behaviors.squads) {
+            if state.num_players == 0 {
+                // Despawn leaders of empty squads.
+                match config.mode {
+                    GameMode::Survival => {
+                        // HACK: Don't despawn the bot leaders, because we use
+                        // those entities for respawning.
+                        //
+                        // It's a hack because I'd much rather have consistent
+                        // entity lifetimes across all game modes.
+                        if let Ok(()) = human_squad_ais.get(behavior.leader) {
+                            if let Some(ent_commands) = commands.get_entity(behavior.leader) {
+                                ent_commands.despawn_recursive();
+                            }
+                        }
+                    }
+                    GameMode::Match => {
+                        if let Some(ent_commands) = commands.get_entity(behavior.leader) {
+                            ent_commands.despawn_recursive();
+                        }
+                    }
+                }
+                continue;
+            }
+
             state.set_cluster_radius(behavior.cluster_density);
 
             // Update squad AI colliders.

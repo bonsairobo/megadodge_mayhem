@@ -3,10 +3,10 @@ use bevy_pkv::PkvStore;
 use serde::{Deserialize, Serialize};
 use smooth_bevy_cameras::controllers::orbit::OrbitCameraController;
 
-#[derive(Deserialize, Resource, Serialize)]
+#[derive(Clone, Deserialize, Resource, Serialize)]
 pub struct GameSettings {
     pub hide_menu_when_game_starts: bool,
-    pub next_game: NextGameConfig,
+    pub next_game: GameConfig,
     pub translate_sensitivity: f32,
     pub rotate_sensitivity: f32,
     pub zoom_sensitivity: f32,
@@ -61,21 +61,29 @@ impl GameSettings {
     }
 }
 
-#[derive(Deserialize, Serialize)]
-pub struct NextGameConfig {
+#[derive(Clone, Deserialize, Resource, Serialize)]
+pub struct GameConfig {
+    pub mode: GameMode,
     pub squads_per_team: u8,
     pub players_per_squad: u32,
     pub n_balls: u32,
 }
 
-impl Default for NextGameConfig {
+impl Default for GameConfig {
     fn default() -> Self {
         Self {
+            mode: GameMode::Survival,
             squads_per_team: 2,
             players_per_squad: 100,
             n_balls: 100,
         }
     }
+}
+
+#[derive(Clone, Copy, Eq, Deserialize, PartialEq, Serialize)]
+pub enum GameMode {
+    Match,
+    Survival,
 }
 
 #[derive(Event)]

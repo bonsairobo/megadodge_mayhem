@@ -2,7 +2,7 @@ use crate::{
     ball::{Ball, BallAssets},
     boundaries::Boundaries,
     gym::{Gym, GymAssets, GymParams},
-    settings::{GameSettings, NextGameConfig},
+    settings::{GameConfig, GameSettings},
     squad::{AllSquadAssets, Squad, SquadBehaviors, SquadStates},
     team::{AllTeamAssets, Team},
 };
@@ -32,16 +32,16 @@ fn destroy_scene(mut commands: Commands, all_scene: Query<Entity, With<GlobalTra
 pub fn start_game(
     mut commands: Commands,
     settings: Res<GameSettings>,
+    gym_params: Res<GymParams>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let gym_params = GymParams::default();
     let he = gym_params.half_extents();
-    let gym_assets = GymAssets::new(gym_params, &mut meshes, &mut materials);
+    let gym_assets = GymAssets::new(*gym_params, &mut meshes, &mut materials);
     Gym::spawn(&mut commands, &gym_assets);
     let bounds = Boundaries { min: -he, max: he };
-    let player_spawn_aabbs = gym_params.player_spawn_aabbs(16.0);
-    let ball_spawn_aabb = gym_params.ball_spawn_aabb(4.0);
+    let player_spawn_aabbs = gym_params.player_spawn_aabbs();
+    let ball_spawn_aabb = gym_params.ball_spawn_aabb();
     let occupancy = gym_params.occupancy_grid();
 
     commands
@@ -67,7 +67,8 @@ pub fn start_game(
     // TODO: animated spotlights could look really cool
     let hhe = 0.5 * he;
     let light_positions = [
-        Vec3::new(0.0, 5.0, 0.0),
+        Vec3::new(-hhe.x, 5.0, 0.0),
+        Vec3::new(hhe.x, 5.0, 0.0),
         Vec3::new(-hhe.x, 5.0, -hhe.z),
         Vec3::new(hhe.x, 5.0, -hhe.z),
         Vec3::new(-hhe.x, 5.0, hhe.z),
@@ -86,10 +87,11 @@ pub fn start_game(
         });
     }
 
-    let NextGameConfig {
+    let GameConfig {
         squads_per_team,
         players_per_squad,
         n_balls,
+        ..
     } = settings.next_game;
 
     let ball_assets = BallAssets::new(&mut meshes, &mut materials);
@@ -143,6 +145,7 @@ pub fn start_game(
     commands.insert_resource(ball_assets);
     commands.insert_resource(bounds);
     commands.insert_resource(occupancy);
+    commands.insert_resource(settings.next_game.clone());
     commands.insert_resource(squad_behaviors);
     commands.insert_resource(squad_states);
     commands.insert_resource(team_assets);

@@ -27,6 +27,7 @@ use bevy_pkv::PkvStore;
 use bevy_rapier3d::prelude::*;
 use collision::{handle_ball_floor_collisions, handle_ball_player_collisions};
 use game_ui::GameUi;
+use gym::GymParams;
 use occupancy_grid::OccupancyGrid;
 use opponent_ai::control_bot_team;
 use player::{AvoidPlayers, KnockedOut, Player};
@@ -38,7 +39,7 @@ use squad::{SquadAi, SquadStates};
 use squad_ui::SquadUi;
 
 // IDEAS
-// - draw line from center of mass to leader token
+// - neutral zones; don't let players into other team's spawn zone
 // - add point-buy for squad statistics
 // - make the throw loft adjustable, using a gizmo to show the arc
 // - make players holding balls run to the "front" of their cluster
@@ -69,6 +70,7 @@ impl Plugin for GamePlugin {
         })
         .init_resource::<GameSettings>()
         .init_resource::<GameUi>()
+        .init_resource::<GymParams>()
         .init_resource::<SquadUi>()
         .add_systems(
             Startup,

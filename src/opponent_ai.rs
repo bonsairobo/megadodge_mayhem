@@ -1,10 +1,16 @@
 use crate::{
     boundaries::Boundaries,
     geometry::{Circle, Ray2},
-    squad::{Squad, SquadAi, SquadBehaviors, SquadState, SquadStates},
-    team::Team,
+    gym::GymParams,
+    settings::{GameConfig, GameMode},
+    squad::{AllSquadAssets, Squad, SquadAi, SquadBehaviors, SquadState, SquadStates},
+    team::{AllTeamAssets, Team},
 };
-use bevy::prelude::*;
+use bevy::{
+    ecs::system::{Command, RunSystemOnce},
+    prelude::*,
+};
+use rand::Rng;
 
 #[derive(Component)]
 pub struct Bot;
@@ -12,6 +18,8 @@ pub struct Bot;
 /// Sets leader tokens for squads to follow.
 #[allow(clippy::complexity)]
 pub fn control_bot_team(
+    mut commands: Commands,
+    config: Res<GameConfig>,
     bounds: Res<Boundaries>,
     mut behaviors: ResMut<SquadBehaviors>,
     states: Res<SquadStates>,
@@ -21,6 +29,9 @@ pub fn control_bot_team(
     for (team, squad, tfm) in &bot_squad_ais {
         let state = &states.squads[squad.squad as usize];
         if state.num_players == 0 {
+            if config.mode == GameMode::Survival {
+                commands.add(RespawnSquad::new(*team, *squad));
+            }
             continue;
         }
 
@@ -220,4 +231,56 @@ fn run_from_enemy(
         let behavior = &mut behaviors.squads[squad.squad as usize];
         behavior.leader_position = Some(pos.xz() + avoid_vec);
     }
+}
+
+struct RespawnSquad {
+    team: Team,
+    squad: Squad,
+}
+
+impl RespawnSquad {
+    fn new(team: Team, squad: Squad) -> Self {
+        Self { team, squad }
+    }
+}
+
+impl Command for RespawnSquad {
+    fn apply(self, world: &mut World) {
+        world.run_system_once_with(self, spawn_squad);
+    }
+}
+
+// Move the leader token back into the spawn area and respawn all players.
+fn spawn_squad(
+    respawn: In<RespawnSquad>,
+    mut commands: Commands,
+    config: Res<GameConfig>,
+    gym_params: Res<GymParams>,
+    mut behaviors: ResMut<SquadBehaviors>,
+    team_assets: Res<AllTeamAssets>,
+    squad_assets: Res<AllSquadAssets>,
+) {
+    let In(RespawnSquad { team, squad }) = respawn;
+
+    let spawn_aabbs = gym_params.player_spawn_aabbs();
+    let aabb = spawn_aabbs[team.team() as usize];
+
+    let behavior = &mut behaviors.squads[squad.squad as usize];
+
+    commands.entity(behavior.leader).despawn_recursive();
+
+    let mut rng = rand::thread_rng();
+    let x = rng.gen_range(aabb.min.x..aabb.max.x);
+    let z = rng.gen_range(aabb.min.y..aabb.max.y);
+    let leader_pos = Vec2::new(x, z);
+    behavior.leader = Squad::spawn(
+        &mut commands,
+        &team_assets.teams[team.team() as usize],
+        &squad_assets.squads[squad.squad as usize],
+        team,
+        squad.squad,
+        aabb,
+        leader_pos,
+        config.players_per_squad,
+    );
 }

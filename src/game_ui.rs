@@ -1,6 +1,6 @@
 use crate::{
     restart_game::RestartGame,
-    settings::{GameSettings, SaveSettings},
+    settings::{GameMode, GameSettings, SaveSettings},
 };
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
@@ -62,6 +62,8 @@ impl GameUi {
                     ui.heading("Game Settings");
                 });
                 ui.separator();
+                ui.radio_value(&mut settings.next_game.mode, GameMode::Survival, "Survival");
+                ui.radio_value(&mut settings.next_game.mode, GameMode::Match, "Match");
                 ui.add(
                     egui::Slider::new(&mut settings.next_game.players_per_squad, 1..=5000)
                         .text("Players Per Squad"),

@@ -82,10 +82,12 @@ impl Gym {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Resource)]
 pub struct GymParams {
     pub size: Vec3,
     pub thickness: f32,
+    pub player_spawn_width: f32,
+    pub ball_spawn_width: f32,
 }
 
 impl Default for GymParams {
@@ -93,6 +95,8 @@ impl Default for GymParams {
         Self {
             size: Vec3::new(80.0, 100.0, 144.0),
             thickness: 1.0,
+            player_spawn_width: 16.0,
+            ball_spawn_width: 4.0,
         }
     }
 }
@@ -111,17 +115,19 @@ impl GymParams {
         0.5 * self.thickness
     }
 
-    pub fn player_spawn_aabbs(&self, width: f32) -> [Aabb2; 2] {
+    pub fn player_spawn_aabbs(&self) -> [Aabb2; 2] {
         let he = self.half_extents();
+        let w = self.player_spawn_width;
         [
-            Aabb2::new([-he.x, he.z - width].into(), [he.x, he.z].into()),
-            Aabb2::new([-he.x, -he.z].into(), [he.x, -he.z + width].into()),
+            Aabb2::new([-he.x, he.z - w].into(), [he.x, he.z].into()),
+            Aabb2::new([-he.x, -he.z].into(), [he.x, -he.z + w].into()),
         ]
     }
 
-    pub fn ball_spawn_aabb(&self, width: f32) -> Aabb2 {
+    pub fn ball_spawn_aabb(&self) -> Aabb2 {
         let he = self.half_extents();
-        Aabb2::new([-he.x, -width].into(), [he.x, width].into())
+        let w = self.ball_spawn_width;
+        Aabb2::new([-he.x, -w].into(), [he.x, w].into())
     }
 
     pub fn occupancy_grid(&self) -> OccupancyGrid {

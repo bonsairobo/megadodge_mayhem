@@ -14,7 +14,7 @@ use bevy_rapier3d::prelude::{Collider, CollisionGroups, Group, QueryFilter, Rapi
 use rand::Rng;
 use std::ops::Range;
 
-#[derive(Component)]
+#[derive(Clone, Copy, Component)]
 pub struct Squad {
     pub squad: u8,
 }

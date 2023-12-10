@@ -10,6 +10,7 @@ mod opponent_ai;
 mod parameters;
 mod player;
 mod restart_game;
+mod scoreboard;
 mod settings;
 mod squad;
 mod squad_ui;
@@ -32,6 +33,7 @@ use occupancy_grid::OccupancyGrid;
 use opponent_ai::control_bot_team;
 use player::{AvoidPlayers, KnockedOut, Player};
 use restart_game::start_game;
+use scoreboard::ScoreBoard;
 use settings::{GameSettings, SaveSettings};
 use smooth_bevy_cameras::controllers::orbit::OrbitCameraPlugin;
 use smooth_bevy_cameras::LookTransformPlugin;
@@ -91,6 +93,7 @@ impl Plugin for GamePlugin {
                 grab_mouse,
                 GameUi::update,
                 GameUi::toggle,
+                ScoreBoard::draw,
                 SquadUi::toggle,
                 SquadUi::draw,
                 OccupancyGrid::update,

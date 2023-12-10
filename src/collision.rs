@@ -2,6 +2,7 @@ use crate::{
     ball::Ball,
     gym::Floor,
     player::{KnockedOut, Player, PlayerBall, ThrowCooldown},
+    scoreboard::ScoreBoard,
     team::{AllTeamAssets, Team},
 };
 use bevy::prelude::*;
@@ -21,6 +22,7 @@ pub mod groups {
 pub fn handle_ball_player_collisions(
     mut commands: Commands,
     team_assets: Res<AllTeamAssets>,
+    mut scoreboard: ResMut<ScoreBoard>,
     mut events: EventReader<CollisionEvent>,
     mut players: Query<
         (
@@ -78,6 +80,9 @@ pub fn handle_ball_player_collisions(
             // println!("player hit");
 
             // Player failed to catch it, they are out.
+            // HACK: Assumes there are only two teams.
+            let other_team = (player_team.team() + 1) % 2;
+            scoreboard.team_scores[other_team as usize] += 1;
             Player::knock_out(
                 &mut commands,
                 &team_assets,

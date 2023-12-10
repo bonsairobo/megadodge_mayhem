@@ -2,6 +2,7 @@ use crate::{
     ball::{Ball, BallAssets},
     boundaries::Boundaries,
     gym::{Gym, GymAssets, GymParams},
+    scoreboard::ScoreBoard,
     settings::{GameConfig, GameSettings},
     squad::{AllSquadAssets, Squad, SquadBehaviors, SquadStates},
     team::{AllTeamAssets, Team},
@@ -145,6 +146,7 @@ pub fn start_game(
     commands.insert_resource(ball_assets);
     commands.insert_resource(bounds);
     commands.insert_resource(occupancy);
+    commands.insert_resource(ScoreBoard::new(2));
     commands.insert_resource(settings.next_game.clone());
     commands.insert_resource(squad_behaviors);
     commands.insert_resource(squad_states);

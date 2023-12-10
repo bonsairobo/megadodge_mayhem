@@ -23,6 +23,7 @@ impl SquadUi {
     pub fn draw(
         ui: Res<Self>,
         mut gizmos: Gizmos,
+        mut giz_config: ResMut<GizmoConfig>,
         mut egui: EguiContexts,
         squad_states: Res<SquadStates>,
         cameras: Query<(&Camera, &GlobalTransform)>,
@@ -33,6 +34,10 @@ impl SquadUi {
         let Some(viewport_rect) = camera.logical_viewport_rect() else {
             return;
         };
+
+        giz_config.depth_bias = -1.0;
+        giz_config.line_width = 3.0;
+        // giz_config.line_perspective = true;
 
         let transparent_white = Color32::from_rgba_unmultiplied(255, 255, 255, 64);
         let stroke = egui::Stroke::new(3.0, transparent_white);
@@ -53,6 +58,7 @@ impl SquadUi {
             }
 
             if team.is_human() {
+                gizmos.line(state.center_of_mass, tfm.translation(), Color::PINK);
                 dbg_painter.circle(
                     to_egui_pos(ai_window_pos),
                     10.0,

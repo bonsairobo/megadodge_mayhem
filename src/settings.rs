@@ -75,7 +75,7 @@ impl Default for GameConfig {
             mode: GameMode::Survival,
             squads_per_team: 2,
             players_per_squad: 100,
-            n_balls: 100,
+            n_balls: 300,
         }
     }
 }

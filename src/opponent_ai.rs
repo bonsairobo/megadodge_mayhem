@@ -40,9 +40,10 @@ pub fn control_bot_team(
         let threats =
             ThreatLevels::assess(&behaviors, &states, &all_squad_ais, team, squad, state, tfm);
 
+        let mut safe = true;
         if let Some((scary, scary_pos)) = threats.scary {
             let enemy_state = &states.squads[scary as usize];
-            run_from_enemy(
+            safe = run_from_enemy(
                 &bounds,
                 &mut behaviors,
                 squad,
@@ -61,13 +62,22 @@ pub fn control_bot_team(
                 let ratio = throw_dist / target_dist;
                 let throw_pos = ratio * pos + (1.0 - ratio) * target_squad_pos;
                 behavior.leader_position = Some(throw_pos.xz());
-            } else {
-                // TODO
-                // let ball_pos = find_balls();
-                // if let Some(ball_pos) = ball_pos {
-                //     let behavior = &mut behaviors.squads[squad.squad as usize];
-                //     behavior.leader_position = Some(ball_pos.xz());
-                // }
+            }
+        }
+
+        if safe {
+            // TODO: actual queries for balls
+            let behavior = &mut behaviors.squads[squad.squad as usize];
+            let dist_from_leader_pos = behavior
+                .leader_position
+                .map(|leader_pos| leader_pos.distance(pos.xz()))
+                .unwrap_or_default();
+            if dist_from_leader_pos < 5.0 {
+                // Choose a new position.
+                let mut rng = rand::thread_rng();
+                let ball_x = rng.gen_range(bounds.min.x..bounds.max.x);
+                let ball_y = rng.gen_range(bounds.min.y..bounds.max.y);
+                behavior.leader_position = Some(Vec2::new(ball_x, ball_y));
             }
         }
     }
@@ -155,6 +165,7 @@ impl ThreatLevels {
     }
 }
 
+/// Returns true iff the squad is at a safe distance from any threats.
 #[allow(clippy::too_many_arguments)]
 fn run_from_enemy(
     bounds: &Boundaries,
@@ -165,13 +176,13 @@ fn run_from_enemy(
     enemy_squad: u8,
     enemy_state: &SquadState,
     enemy_pos: Vec3,
-) {
+) -> bool {
     let enemy_behavior = &behaviors.squads[enemy_squad as usize];
     let safety_margin = 2.0;
     let safe_dist = safety_margin * (state.cluster_radius + enemy_behavior.stats.throw_distance);
     let current_dist = pos.distance(enemy_pos);
     if current_dist > safe_dist {
-        return;
+        return true;
     }
 
     // Simple Pathfinding
@@ -231,6 +242,8 @@ fn run_from_enemy(
         let behavior = &mut behaviors.squads[squad.squad as usize];
         behavior.leader_position = Some(pos.xz() + avoid_vec);
     }
+
+    false
 }
 
 struct RespawnSquad {

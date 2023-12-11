@@ -10,6 +10,7 @@ fn main() {
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 title: "Mega Dodge Mayhem".to_string(),
+                mode: bevy::window::WindowMode::Fullscreen,
                 // Bind to canvas included in `index.html`
                 canvas: Some("#bevy".to_owned()),
                 // The canvas size is constrained in index.html and build/web/styles.css

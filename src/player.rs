@@ -123,7 +123,7 @@ impl Player {
 
         commands
             .entity(entity)
-            .insert((KnockedOut, DespawnTimer::new()));
+            .try_insert((KnockedOut, DespawnTimer::new()));
     }
 
     #[allow(clippy::complexity)]

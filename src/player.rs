@@ -86,9 +86,6 @@ impl PlayerBundle {
     }
 }
 
-// PERF: we could limit how many spatial queries are done each frame with a
-// queue, since every player doesn't **need** to do queries every frame
-
 impl Player {
     fn in_play_groups() -> CollisionGroups {
         CollisionGroups::new(

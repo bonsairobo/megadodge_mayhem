@@ -1,2 +1,6 @@
 dist
 target
+
+# HACK: required for MacOS release builds
+# https://github.com/NiklasEi/bevy_game_template/issues/87
+rust-toolchain.toml

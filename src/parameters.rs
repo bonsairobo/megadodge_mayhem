@@ -16,6 +16,7 @@ pub const SQUAD_CLUSTER_DENSITY: f32 = 3.0;
 ///
 /// This should be nonzero to avoid friendly fire.
 pub const THROW_LOFT: f32 = 0.1;
+pub const THROW_SPREAD_ANGLE: f32 = 0.3;
 /// A percentage of the target's height.
 pub const THROW_TARGET_HEIGHT: f32 = 0.8;
 /// How long a player must wait between throws.

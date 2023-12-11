@@ -11,7 +11,7 @@ use crate::{
     collision,
     parameters::{
         AVOID_FACTOR, CHASE_FACTOR, THROW_COOLDOWN_MILLIS, THROW_LOFT, THROW_OVER_HEAD,
-        THROW_TARGET_HEIGHT,
+        THROW_SPREAD_ANGLE, THROW_TARGET_HEIGHT,
     },
     squad::{Squad, SquadAi, SquadAssets, SquadBehaviors, SquadStates},
     team::{AllTeamAssets, Team, TeamAssets},
@@ -20,6 +20,7 @@ use bevy::prelude::*;
 use bevy_rapier3d::prelude::{
     Collider, ColliderMassProperties, CollisionGroups, LockedAxes, RigidBody, Velocity,
 };
+use rand::Rng;
 use std::time::Duration;
 
 #[derive(Component)]
@@ -292,11 +293,14 @@ impl Player {
 
                 // Spawn a thrown ball.
                 // Start the throw over the player's heads so they don't friendly fire.
+                let mut rng = rand::thread_rng();
+                let angle_offset = rng.gen_range(-THROW_SPREAD_ANGLE..THROW_SPREAD_ANGLE);
+                let throw_vector = Mat2::from_angle(angle_offset) * enemy_vector.xz();
                 let player_height = team_assets.teams[player_team.team() as usize].size.y;
                 let start_y = player_height + THROW_OVER_HEAD;
                 let max_y = start_y + THROW_LOFT;
                 let end_y = THROW_TARGET_HEIGHT * player_height; // TODO: should look at other team's height
-                let throw_v = throw_velocity(enemy_vector.xz(), start_y, max_y, end_y);
+                let throw_v = throw_velocity(throw_vector, start_y, max_y, end_y);
                 let throw_start = Vec3::new(player_pos.x, start_y, player_pos.z);
                 commands.spawn(ThrownBallBundle::new(&ball_assets, throw_start, throw_v));
             } else {
